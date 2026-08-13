@@ -5,7 +5,7 @@ import SwiftData
 /// Nothing in this fixture is fetched from or sent to a network service.
 @MainActor
 enum ReleasePreviewSampleData {
-    private static let fixtureVersion = 2
+    private static let fixtureVersion = 4
     private static let fixtureVersionKey = "releasePreviewSampleVersion"
 
     private struct Draft {
@@ -24,18 +24,16 @@ enum ReleasePreviewSampleData {
         let favorite: Bool
     }
 
+    static func refreshExistingSamplesIfNeeded(in context: ModelContext) throws {
+        guard UserDefaults.standard.integer(forKey: fixtureVersionKey) < fixtureVersion else { return }
+        let places = try context.fetch(FetchDescriptor<Place>())
+        guard places.contains(where: { $0.externalPlaceID?.hasPrefix("release-preview-") == true }) else { return }
+        try add(to: context)
+    }
+
     static func add(to context: ModelContext) throws {
         let existingRecords = try context.fetch(FetchDescriptor<RestaurantRecord>())
         let existingPlaces = try context.fetch(FetchDescriptor<Place>())
-        let samplePlaceIDs: Set<UUID> = Set(existingPlaces.compactMap { place -> UUID? in
-            guard place.externalPlaceID?.hasPrefix("release-preview-") == true else { return nil }
-            return place.id
-        })
-        let hasCompleteCurrentFixture = samplePlaceIDs.count == drafts.count
-            && existingRecords.filter { samplePlaceIDs.contains($0.placeID) }.count == drafts.count
-            && UserDefaults.standard.integer(forKey: fixtureVersionKey) == fixtureVersion
-        guard !hasCompleteCurrentFixture else { return }
-
         let existingPhotos = try context.fetch(FetchDescriptor<RecordPhoto>())
         let existingMenuItems = try context.fetch(FetchDescriptor<RecordMenuItem>())
         let existingTags = try context.fetch(FetchDescriptor<Tag>())
@@ -112,7 +110,9 @@ enum ReleasePreviewSampleData {
         }
 
         try context.save()
-        UserDefaults.standard.set(fixtureVersion, forKey: fixtureVersionKey)
+        if !ProcessInfo.processInfo.arguments.contains("-uiTesting") {
+            UserDefaults.standard.set(fixtureVersion, forKey: fixtureVersionKey)
+        }
     }
 
     private static func imageData(named name: String) throws -> Data {
@@ -136,12 +136,12 @@ enum ReleasePreviewSampleData {
     }
 
     private static let drafts: [Draft] = [
-        Draft(name: "湯気ラーメン 代々木", address: "東京都渋谷区代々木1-8-4", coordinate: (35.6835, 139.7022), category: "ラーメン", status: .visited, ratingHalfSteps: 9, price: 2, visitDate: date(day: 10, hour: 12), memo: "鶏のうまみがじんわり。半熟たまごも好みで、雨の日にまた来たい。", tags: ["ランチ", "ひとりごはん", "麺", "また行きたい"], photoName: "sample-ramen", menu: [("鶏白湯ラーメン", 1_180), ("味玉", 150)], favorite: true),
+        Draft(name: "湯気ラーメン 佐々木", address: "東京都渋谷区代々木1-8-4", coordinate: (35.6835, 139.7022), category: "ラーメン", status: .visited, ratingHalfSteps: 9, price: 2, visitDate: date(day: 10, hour: 12), memo: "鶏のうまみがじんわり。半熟たまごも好みで、雨の日にまた来たい。", tags: ["ランチ", "ひとりごはん", "麺", "また行きたい"], photoName: "sample-ramen-sasaki", menu: [("鶏白湯ラーメン", 1_180), ("味玉", 150)], favorite: true),
         Draft(name: "季節の食堂 こもれび", address: "東京都目黒区中目黒2-14-6", coordinate: (35.6426, 139.6993), category: "和食", status: .visited, ratingHalfSteps: 10, price: 3, visitDate: date(day: 9, hour: 13), memo: "焼き魚がふっくら。小鉢まで丁寧で、ゆっくりしたい日のランチに。", tags: ["ランチ", "和食", "また行きたい"], photoName: "sample-washoku", menu: [("季節の焼き魚定食", 1_680)], favorite: true),
         Draft(name: "Café Lento", address: "東京都世田谷区三軒茶屋1-23-8", coordinate: (35.6430, 139.6690), category: "カフェ", status: .visited, ratingHalfSteps: 8, price: 2, visitDate: date(day: 8, hour: 10), memo: "朝の光が心地いいカフェ。ラテとアボカドトーストでゆっくり読書。", tags: ["カフェ", "ひとりごはん"], photoName: "sample-cafe", menu: [("アボカドトースト", 1_250), ("カフェラテ", 620)], favorite: false),
         Draft(name: "Trattoria Sera", address: "東京都港区麻布十番2-5-11", coordinate: (35.6555, 139.7376), category: "イタリアン", status: .visited, ratingHalfSteps: 9, price: 3, visitDate: date(day: 7, hour: 19), memo: "パスタのソースが濃厚で、食後のティラミスまで大満足。", tags: ["記念日", "また行きたい"], photoName: "sample-italian", menu: [("ボロネーゼ", 1_780), ("ティラミス", 780)], favorite: true),
-        Draft(name: "朝のパン研究所", address: "東京都台東区蔵前3-7-2", coordinate: (35.7047, 139.7905), category: "ベーカリー", status: .visited, ratingHalfSteps: 8, price: 1, visitDate: date(day: 6, hour: 9), memo: "サクッと軽い朝ごはんにぴったり。次は季節のスープも試したい。", tags: ["カフェ", "ひとりごはん"], photoName: "sample-cafe", menu: [("トーストプレート", 980)], favorite: false),
-        Draft(name: "出汁そば ひとやすみ", address: "東京都新宿区神楽坂4-3-7", coordinate: (35.7020, 139.7375), category: "そば", status: .wantToGo, ratingHalfSteps: 0, price: 2, visitDate: nil, memo: "友人のおすすめ。平日のお昼に行ってみたい。", tags: ["ランチ", "麺"], photoName: "sample-ramen", menu: [], favorite: false),
+        Draft(name: "朝のパン研究所", address: "東京都台東区蔵前3-7-2", coordinate: (35.7047, 139.7905), category: "ベーカリー", status: .visited, ratingHalfSteps: 8, price: 1, visitDate: date(day: 6, hour: 9), memo: "サクッと軽い朝ごはんにぴったり。次は季節のスープも試したい。", tags: ["カフェ", "ひとりごはん"], photoName: "sample-morning-bakery", menu: [("トーストプレート", 980)], favorite: false),
+        Draft(name: "出汁そば ひとやすみ", address: "東京都新宿区神楽坂4-3-7", coordinate: (35.7020, 139.7375), category: "そば", status: .wantToGo, ratingHalfSteps: 0, price: 2, visitDate: nil, memo: "友人のおすすめ。平日のお昼に行ってみたい。", tags: ["ランチ", "麺"], photoName: "sample-dashi-soba", menu: [], favorite: false),
         Draft(name: "小皿食堂 灯", address: "東京都中央区日本橋人形町2-11-9", coordinate: (35.6865, 139.7854), category: "定食", status: .wantToGo, ratingHalfSteps: 0, price: 2, visitDate: nil, memo: "季節の定食が気になる。仕事帰りにも良さそう。", tags: ["和食", "また行きたい"], photoName: "sample-washoku", menu: [], favorite: false),
         Draft(name: "夜カフェ Orbis", address: "東京都渋谷区恵比寿西1-18-5", coordinate: (35.6486, 139.7097), category: "カフェ", status: .wantToGo, ratingHalfSteps: 0, price: 2, visitDate: nil, memo: "デザートがきれい。次の休日の候補。", tags: ["カフェ", "記念日"], photoName: "sample-italian", menu: [], favorite: false),
     ]

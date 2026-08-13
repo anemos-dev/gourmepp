@@ -6,10 +6,10 @@ import UIKit
 
 enum AppTab: Hashable { case home, map, record, settings }
 enum HomeLayout: String, CaseIterable, Identifiable {
-    case grid, list, map
+    case grid, list
     var id: String { rawValue }
-    var icon: String { switch self { case .grid: "square.grid.2x2"; case .list: "list.bullet"; case .map: "map" } }
-    var title: String { switch self { case .grid: "写真"; case .list: "リスト"; case .map: "地図" } }
+    var icon: String { switch self { case .grid: "square.grid.2x2"; case .list: "list.bullet" } }
+    var title: String { switch self { case .grid: "写真"; case .list: "リスト" } }
 }
 enum HomeStatusFilter: String, CaseIterable, Identifiable {
     case all, visited, wantToGo
@@ -20,7 +20,6 @@ enum HomeStatusFilter: String, CaseIterable, Identifiable {
 enum RecordSort: String, CaseIterable, Identifiable { case updated, visitDate, rating, name; var id: String { rawValue }; var title: String { switch self { case .updated: "追加順"; case .visitDate: "訪問日順"; case .rating: "評価順"; case .name: "店名順" } } }
 
 struct AppView: View {
-    @Environment(ProPreferences.self) private var proPreferences
     @State private var tab: AppTab = .home
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     var body: some View {
@@ -30,7 +29,7 @@ struct AppView: View {
             NavigationStack { RecordStartView() }.tabItem { Label("記録する", systemImage: "plus.circle.fill") }.tag(AppTab.record)
             NavigationStack { ReleaseSettingsView() }.tabItem { Label("マイページ", systemImage: "person.crop.circle") }.tag(AppTab.settings)
         }
-        .tint(proPreferences.accentColor)
+        .tint(Color("BrandOrange"))
         .toolbarBackground(Color("PinterestCanvas"), for: .tabBar)
         .fullScreenCover(isPresented: Binding(
             get: { !hasCompletedOnboarding && !ProcessInfo.processInfo.arguments.contains("-skipOnboarding") },
@@ -51,7 +50,7 @@ struct HomeView: View {
     @Query private var places: [Place]
     @Query private var tags: [Tag]
     @Query private var photos: [RecordPhoto]
-    @State private var statusFilter: HomeStatusFilter = .all; @State private var query = ""; @State private var selectedTags: Set<UUID> = []; @State private var layout: HomeLayout = .grid; @State private var favoritesOnly = false; @State private var selectedPrice: Int?; @State private var selectedArea = ""; @State private var sort: RecordSort = .updated; @State private var selectedMapRecord: RestaurantRecord?; @State private var minimumRating = 0.0; @State private var hasPhotosOnly = false; @State private var didApplyHomePreferences = false
+    @State private var statusFilter: HomeStatusFilter = .all; @State private var query = ""; @State private var selectedTags: Set<UUID> = []; @State private var layout: HomeLayout = .grid; @State private var favoritesOnly = false; @State private var selectedPrice: Int?; @State private var selectedArea = ""; @State private var sort: RecordSort = .updated; @State private var minimumRating = 0.0; @State private var hasPhotosOnly = false; @State private var didApplyHomePreferences = false
     private var areas: [String] { Array(Set(places.map { $0.area.isEmpty ? Place.area(from: $0.address) : $0.area }.filter { !$0.isEmpty })).sorted() }
     private var displayed: [RestaurantRecord] {
         let recordsWithPhotos = Set(photos.map(\.recordID))
@@ -137,7 +136,7 @@ struct HomeView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: layout.icon).foregroundStyle(proPreferences.accentColor)
+                    Image(systemName: layout.icon).foregroundStyle(Color("BrandOrange"))
                 }
             }
         }
@@ -186,36 +185,27 @@ struct HomeView: View {
                     places: places,
                     photos: photos,
                     columnCount: proAccess.isProUnlocked ? proPreferences.gridColumns : 2,
-                    showsCardDetails: !proAccess.isProUnlocked || proPreferences.showsCardDetails,
-                    accentColor: proPreferences.accentColor
+                    showsCardDetails: !proAccess.isProUnlocked || proPreferences.showsCardDetails
                 )
             case .list:
                 List(displayed) { record in
                     NavigationLink {
                         PlaceDetailView(recordID: record.id)
                     } label: {
-                        RecordCard(record: record, place: places.first { $0.id == record.placeID }, compact: false, photo: primaryPhoto(for: record))
+                        HomeListCard(
+                            record: record,
+                            place: places.first { $0.id == record.placeID },
+                            photo: primaryPhoto(for: record)
+                        )
                     }
+                    .buttonStyle(.plain)
+                    .listRowInsets(.init(top: 6, leading: 16, bottom: 6, trailing: 16))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
                 .listStyle(.plain)
-            case .map:
-                ZStack(alignment: .bottom) {
-                    RecordsMap(records: displayed, places: places, selected: $selectedMapRecord)
-                    if let selectedMapRecord,
-                       displayed.contains(where: { $0.id == selectedMapRecord.id }),
-                       let place = places.first(where: { $0.id == selectedMapRecord.placeID }) {
-                        NavigationLink {
-                            PlaceDetailView(recordID: selectedMapRecord.id)
-                        } label: {
-                            RecordCard(record: selectedMapRecord, place: place, compact: false, photo: primaryPhoto(for: selectedMapRecord))
-                                .padding(12)
-                                .background(.regularMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        }
-                        .buttonStyle(.plain)
-                        .padding()
-                    }
-                }
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 1)
             }
         }
     }
@@ -256,13 +246,91 @@ struct HomeView: View {
     }
 }
 
+private struct HomeListCard: View {
+    let record: RestaurantRecord
+    let place: Place?
+    let photo: RecordPhoto?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            image
+                .frame(width: 96, height: 82)
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(place?.name ?? "店舗")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                HStack(spacing: 8) {
+                    if record.displayRating > 0 {
+                        Label(record.ratingText, systemImage: "star.fill")
+                            .foregroundStyle(Color("BrandOrange"))
+                    } else {
+                        Text("未評価")
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(record.status.title)
+                        .foregroundStyle(.secondary)
+                }
+                .font(.subheadline.weight(.medium))
+
+                Text([place?.category, place?.area].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "・"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 4)
+
+            if record.isFavorite {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(Color("BrandOrange"))
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(8)
+        .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color("BrandOrange"), lineWidth: 1.5)
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(accessibilityText)
+    }
+
+    @ViewBuilder private var image: some View {
+        if let photo, let uiImage = LocalPhotoStore().image(at: photo.thumbnailPath) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else {
+            LinearGradient(
+                colors: [Color("BrandSun"), Color("BrandOrange")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .overlay {
+                Image(systemName: "fork.knife")
+                    .foregroundStyle(.white.opacity(0.85))
+            }
+        }
+    }
+
+    private var accessibilityText: String {
+        let rating = record.displayRating > 0 ? "評価\(record.ratingText)" : "未評価"
+        return "\(place?.name ?? "店舗")、\(rating)、\(record.status.title)"
+    }
+}
+
 private struct PinterestMasonryGrid: View {
     let records: [RestaurantRecord]
     let places: [Place]
     let photos: [RecordPhoto]
     let columnCount: Int
     let showsCardDetails: Bool
-    let accentColor: Color
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 12), count: columnCount)
     }
@@ -274,8 +342,7 @@ private struct PinterestMasonryGrid: View {
                         record: record,
                         place: places.first { $0.id == record.placeID },
                         photo: photos.filter { $0.recordID == record.id }.min { $0.order < $1.order },
-                        showsCardDetails: showsCardDetails,
-                        accentColor: accentColor
+                        showsCardDetails: showsCardDetails
                     )
                 }
             }
@@ -290,7 +357,6 @@ private struct PinterestRecordTile: View {
     let place: Place?
     let photo: RecordPhoto?
     let showsCardDetails: Bool
-    let accentColor: Color
     private let fallbackColors: [Color] = [Color("BrandOrange"), .orange, .brown, .teal, .indigo]
     private var fallbackColor: Color {
         let index = record.id.uuidString.utf8.reduce(0) { ($0 + Int($1)) % fallbackColors.count }
@@ -319,7 +385,7 @@ private struct PinterestRecordTile: View {
                             Spacer()
                             if record.isFavorite {
                                 Image(systemName: "heart.fill")
-                                    .foregroundStyle(accentColor)
+                                    .foregroundStyle(Color("BrandOrange"))
                                     .padding(8)
                                     .background(.black.opacity(0.42), in: Circle())
                             }

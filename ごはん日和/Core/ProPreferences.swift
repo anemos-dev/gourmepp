@@ -77,7 +77,7 @@ final class ProPreferences {
         showsCardDetails = defaults.object(forKey: cardDetailsKey) == nil
             ? true
             : defaults.bool(forKey: cardDetailsKey)
-        defaultHomeLayoutRaw = defaults.string(forKey: defaultLayoutKey) ?? "grid"
+        defaultHomeLayoutRaw = defaults.string(forKey: defaultLayoutKey) == "list" ? "list" : "grid"
     }
 
     var accentColor: Color { accentTheme.color }

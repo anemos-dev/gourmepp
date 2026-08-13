@@ -216,7 +216,7 @@ struct ごはん日和Tests {
         preferences.accentTheme = .green
         preferences.gridColumns = 3
         preferences.showsCardDetails = false
-        preferences.defaultHomeLayoutRaw = HomeLayout.map.rawValue
+        preferences.defaultHomeLayoutRaw = HomeLayout.list.rawValue
         preferences.save(SavedHomeFilter(
             name: "高評価の写真あり",
             query: "",
@@ -233,7 +233,7 @@ struct ごはん日和Tests {
         #expect(restored.accentTheme == .green)
         #expect(restored.gridColumns == 3)
         #expect(restored.showsCardDetails == false)
-        #expect(restored.defaultHomeLayoutRaw == HomeLayout.map.rawValue)
+        #expect(restored.defaultHomeLayoutRaw == HomeLayout.list.rawValue)
         #expect(restored.savedFilters.first?.name == "高評価の写真あり")
         #expect(restored.savedFilters.first?.minimumRating == 4.0)
         #expect(restored.savedFilters.first?.hasPhotosOnly == true)

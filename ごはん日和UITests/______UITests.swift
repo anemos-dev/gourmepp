@@ -25,12 +25,12 @@ final class ______UITests: XCTestCase {
         XCTAssertTrue(app.buttons["行きたい"].exists)
         XCTAssertFalse(app.buttons["気になる"].exists)
 
-        let sampleCard = app.buttons["湯気ラーメン 代々木、行った"]
+        let sampleCard = app.buttons["湯気ラーメン 佐々木、行った"]
         XCTAssertTrue(sampleCard.waitForExistence(timeout: 8))
         sampleCard.tap()
 
         XCTAssertTrue(app.navigationBars["店舗詳細"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["湯気ラーメン 代々木"].exists)
+        XCTAssertTrue(app.staticTexts["湯気ラーメン 佐々木"].exists)
     }
 
     @MainActor

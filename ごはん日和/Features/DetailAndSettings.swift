@@ -17,7 +17,7 @@ struct PlaceDetailView: View {
                             LinearGradient(colors: [.clear, .black.opacity(0.55)], startPoint: .center, endPoint: .bottom)
                             VStack(alignment: .leading) { Text(place.name).font(.title.bold()).foregroundStyle(.white); Text("\(place.category)  \(place.address)").foregroundStyle(.white.opacity(0.85)) }.padding()
                         }
-                        HStack { Button { record.isFavorite.toggle(); saveChanges() } label: { Label(record.isFavorite ? "お気に入り" : "お気に入りに追加", systemImage: record.isFavorite ? "heart.fill" : "heart") }; Spacer(); if record.status == .wantToGo { Button("行ったにする") { record.status = .visited; record.visitDate = .now; saveChanges() }.buttonStyle(.borderedProminent) } }
+                        HStack { Button { record.isFavorite.toggle(); saveChanges() } label: { Label(record.isFavorite ? "お気に入り" : "お気に入りに追加", systemImage: record.isFavorite ? "heart.fill" : "heart") }.tint(Color("BrandOrange")); Spacer(); if record.status == .wantToGo { Button("行ったにする") { record.status = .visited; record.visitDate = .now; saveChanges() }.buttonStyle(.borderedProminent) } }
                     }
                     Section("自分の記録") {
                         LabeledContent("状態", value: record.status.title)

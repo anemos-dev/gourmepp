@@ -49,8 +49,9 @@ struct ______App: App {
                 .task {
                     do {
                         try InitialReleasePrivacy.normalize(in: sharedModelContainer.mainContext)
+                        try ReleasePreviewSampleData.refreshExistingSamplesIfNeeded(in: sharedModelContainer.mainContext)
                     } catch {
-                        errorCenter.show(error, title: "プライバシー設定を更新できませんでした")
+                        errorCenter.show(error, title: "アプリデータを更新できませんでした")
                     }
                 }
                 .task { await proAccess.prepare() }
