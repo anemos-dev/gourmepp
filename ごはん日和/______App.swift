@@ -10,11 +10,27 @@ import SwiftData
 
 @main
 struct ______App: App {
+    @State private var errorCenter = AppErrorCenter()
+    @State private var proAccess = ProAccessController()
+    @State private var proPreferences = ProPreferences()
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            LocalUserProfile.self,
+            Place.self,
+            RestaurantRecord.self,
+            RecordPhoto.self,
+            RecordMenuItem.self,
+            Tag.self,
+            Collection.self,
+            CollectionEntry.self,
+            AppSettings.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        #if DEBUG
+        let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
+        #else
+        let isUITesting = false
+        #endif
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: isUITesting)
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
@@ -25,7 +41,26 @@ struct ______App: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppView()
+                .environment(errorCenter)
+                .environment(proAccess)
+                .environment(proPreferences)
+                .appErrorAlert(errorCenter)
+                .task {
+                    do {
+                        try InitialReleasePrivacy.normalize(in: sharedModelContainer.mainContext)
+                    } catch {
+                        errorCenter.show(error, title: "プライバシー設定を更新できませんでした")
+                    }
+                }
+                .task { await proAccess.prepare() }
+                .task { await proAccess.observeTransactions() }
+                #if DEBUG
+                .task {
+                    guard ProcessInfo.processInfo.arguments.contains("-seedReleasePreview") else { return }
+                    try? ReleasePreviewSampleData.add(to: sharedModelContainer.mainContext)
+                }
+                #endif
         }
         .modelContainer(sharedModelContainer)
     }
