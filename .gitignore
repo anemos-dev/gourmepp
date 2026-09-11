@@ -1,0 +1,11 @@
+# macOS / Xcode user state
+.DS_Store
+**/xcuserdata/
+DerivedData/
+
+# Local build products and archives
+build/
+*.xcarchive
+
+# Cloudflare Wrangler account and deployment cache
+.wrangler/
