@@ -35,6 +35,7 @@ final class LocalPhotoStore: PhotoStore {
     }
     func image(at path: String) -> UIImage? { UIImage(contentsOfFile: root.deletingLastPathComponent().appendingPathComponent(path).path) }
     func data(at path: String) -> Data? { try? Data(contentsOf: root.deletingLastPathComponent().appendingPathComponent(path)) }
+    func exists(at path: String) -> Bool { fm.fileExists(atPath: root.deletingLastPathComponent().appendingPathComponent(path).path) }
     func totalBytes() -> Int64 {
         guard let enumerator = fm.enumerator(at: root, includingPropertiesForKeys: [.fileSizeKey]) else { return 0 }
         return enumerator.compactMap { $0 as? URL }.reduce(0) { total, url in

@@ -237,6 +237,16 @@ struct グルメップTests {
         #expect(restored.savedFilters.first?.name == "高評価の写真あり")
         #expect(restored.savedFilters.first?.minimumRating == 4.0)
         #expect(restored.savedFilters.first?.hasPhotosOnly == true)
+
+        #if DEBUG
+        preferences.resetToDefaults()
+        let reset = ProPreferences(defaults: defaults)
+        #expect(reset.accentTheme == .orange)
+        #expect(reset.gridColumns == 2)
+        #expect(reset.showsCardDetails)
+        #expect(reset.defaultHomeLayoutRaw == HomeLayout.grid.rawValue)
+        #expect(reset.savedFilters.isEmpty)
+        #endif
     }
 
     @Test @MainActor func epubRoundTripPreservesVisitFields() throws {

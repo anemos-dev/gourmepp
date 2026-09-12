@@ -91,6 +91,16 @@ final class ProPreferences {
         savedFilters.remove(atOffsets: offsets)
     }
 
+    #if DEBUG
+    func resetToDefaults() {
+        savedFilters = []
+        accentTheme = .orange
+        gridColumns = 2
+        showsCardDetails = true
+        defaultHomeLayoutRaw = "grid"
+    }
+    #endif
+
     private func persistSavedFilters() {
         guard let data = try? JSONEncoder().encode(savedFilters) else { return }
         defaults.set(data, forKey: savedFiltersKey)

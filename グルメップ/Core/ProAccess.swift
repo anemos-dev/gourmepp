@@ -34,6 +34,11 @@ final class ProAccessController {
     }
 
     #if DEBUG
+    func setDeveloperProUnlocked(_ isUnlocked: Bool) {
+        hasDeveloperPro = isUnlocked
+        UserDefaults.standard.set(isUnlocked, forKey: "pro.developerCodeUnlocked")
+    }
+
     @discardableResult
     func redeemDeveloperCode(_ code: String) -> Bool {
         let normalized = code.uppercased().filter { $0.isLetter || $0.isNumber }
@@ -43,8 +48,7 @@ final class ProAccessController {
         guard digest == "58ff5d065f71f79c644b80c37a950950a5bf5318ecc5930297c6051de764b8c1" else {
             return false
         }
-        hasDeveloperPro = true
-        UserDefaults.standard.set(true, forKey: "pro.developerCodeUnlocked")
+        setDeveloperProUnlocked(true)
         return true
     }
     #endif

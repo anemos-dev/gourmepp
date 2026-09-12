@@ -110,6 +110,21 @@ struct ReleaseSettingsView: View {
 
     var body: some View {
         List {
+            #if DEBUG
+            Section("開発") {
+                NavigationLink {
+                    DeveloperMenuView()
+                } label: {
+                    Label("開発者メニュー", systemImage: "hammer.fill")
+                }
+                .accessibilityIdentifier("developerMenuLink")
+
+                Text("Debugビルド専用のデータ生成、状態確認、機能フラグ、診断ツールを開きます。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            #endif
+
             Section("グルメップ Pro") {
                 if proAccess.isProUnlocked {
                     NavigationLink {
