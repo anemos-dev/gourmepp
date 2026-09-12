@@ -26,3 +26,11 @@ xcodebuild test -project 'グルメップ.xcodeproj' -scheme 'グルメップ' -
 - SwiftDataモデルの削除・型変更・必須化は既存ストアを壊し得るため、互換性か移行方針を確認します。
 - 写真や位置情報は許可拒否、空状態、エラー状態も確認します。
 - Xcodeのファイル同期設定を維持し、生成物や`Assets.xcassets`をソースコード扱いで一括整形しません。
+
+## Gitブランチ運用
+
+- `main` はリリース可能な製品コード専用です。通常の機能追加・修正は最新の`main`から`feature/*`を作り、内容を確認したPRを`main`へ1回だけマージします。
+- `developer-menu` は「最新の`main` + デバッグ専用メニュー」です。デバッグ専用コードはこのブランチだけで管理し、`developer-menu`から`main`へはマージしません。
+- `main`へのpush後は`.github/workflows/sync-developer-menu.yml`が`main`を`developer-menu`へマージしてpushします。fast-forward可能ならfast-forwardし、分岐していれば通常のmerge commitを作ります。
+- 自動同期で競合した場合、Actionはpush前に失敗します。履歴の上書きや自動競合解決は行わず、`developer-menu`側で内容を確認してから手動で`main`をマージします。
+- 製品側にも必要になった変更は、最新の`main`から新しい`feature/*`を作ってデバッグ変更と分離し、通常のPRとして取り込みます。
