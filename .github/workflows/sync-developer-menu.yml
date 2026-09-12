@@ -1,0 +1,48 @@
+name: Sync main to developer-menu
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-main-to-developer-menu
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge main into developer-menu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out developer-menu
+        uses: actions/checkout@v7
+        with:
+          ref: developer-menu
+          fetch-depth: 0
+
+      - name: Fetch protected branches
+        run: |
+          git fetch --no-tags origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/developer-menu:refs/remotes/origin/developer-menu
+
+      - name: Reject debug-only code on main
+        run: |
+          if git grep -q -E 'DeveloperMenuView|developerMenuLink|developerProUnlocked' \
+            origin/main -- ':(glob)**/*.swift'; then
+            echo '::error::Debug-only developer menu code was detected on main.'
+            exit 1
+          fi
+
+      - name: Merge main into developer-menu
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-edit origin/main
+
+      - name: Push developer-menu
+        run: git push origin HEAD:developer-menu

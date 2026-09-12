@@ -73,7 +73,7 @@ final class ProPreferences {
         }
         accentTheme = ProAccentTheme(rawValue: defaults.string(forKey: accentKey) ?? "") ?? .orange
         let storedColumns = defaults.integer(forKey: gridColumnsKey)
-        gridColumns = storedColumns == 3 ? 3 : 2
+        gridColumns = [2, 3, 4].contains(storedColumns) ? storedColumns : 2
         showsCardDetails = defaults.object(forKey: cardDetailsKey) == nil
             ? true
             : defaults.bool(forKey: cardDetailsKey)

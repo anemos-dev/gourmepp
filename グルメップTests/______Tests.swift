@@ -214,7 +214,7 @@ struct グルメップTests {
 
         let preferences = ProPreferences(defaults: defaults)
         preferences.accentTheme = .green
-        preferences.gridColumns = 3
+        preferences.gridColumns = 4
         preferences.showsCardDetails = false
         preferences.defaultHomeLayoutRaw = HomeLayout.list.rawValue
         preferences.save(SavedHomeFilter(
@@ -231,7 +231,7 @@ struct グルメップTests {
 
         let restored = ProPreferences(defaults: defaults)
         #expect(restored.accentTheme == .green)
-        #expect(restored.gridColumns == 3)
+        #expect(restored.gridColumns == 4)
         #expect(restored.showsCardDetails == false)
         #expect(restored.defaultHomeLayoutRaw == HomeLayout.list.rawValue)
         #expect(restored.savedFilters.first?.name == "高評価の写真あり")
