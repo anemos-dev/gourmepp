@@ -50,12 +50,6 @@ struct ProPaywallView: View {
                         title: "自分好みにカスタマイズ",
                         detail: "テーマ色、グリッド列数、カード表示を変更"
                     )
-                    Divider().padding(.leading, 52)
-                    ProFeatureRow(
-                        icon: "lock.shield.fill",
-                        title: "記録はこれまで通り端末内",
-                        detail: "分析のために写真や位置情報を外部送信しません"
-                    )
                 }
                 .background(.background)
                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
