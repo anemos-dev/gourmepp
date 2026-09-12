@@ -20,6 +20,8 @@ enum HomeStatusFilter: String, CaseIterable, Identifiable {
 enum RecordSort: String, CaseIterable, Identifiable { case updated, visitDate, rating, name; var id: String { rawValue }; var title: String { switch self { case .updated: "追加順"; case .visitDate: "訪問日順"; case .rating: "評価順"; case .name: "店名順" } } }
 
 struct AppView: View {
+    @Environment(ProAccessController.self) private var proAccess
+    @Environment(ProPreferences.self) private var proPreferences
     @State private var tab: AppTab = .home
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     var body: some View {
@@ -29,7 +31,7 @@ struct AppView: View {
             NavigationStack { RecordStartView() }.tabItem { Label("記録する", systemImage: "plus.circle.fill") }.tag(AppTab.record)
             NavigationStack { ReleaseSettingsView() }.tabItem { Label("設定", systemImage: "gearshape") }.tag(AppTab.settings)
         }
-        .tint(Color("BrandOrange"))
+        .tint(proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange"))
         .toolbarBackground(Color("PinterestCanvas"), for: .tabBar)
         .fullScreenCover(isPresented: Binding(
             get: { !hasCompletedOnboarding && !ProcessInfo.processInfo.arguments.contains("-skipOnboarding") },

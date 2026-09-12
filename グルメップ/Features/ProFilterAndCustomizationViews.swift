@@ -179,6 +179,7 @@ struct ProCustomizationView: View {
                 Picker("グリッド列数", selection: $preferences.gridColumns) {
                     Text("2列").tag(2)
                     Text("3列").tag(3)
+                    Text("4列").tag(4)
                 }
                 .pickerStyle(.segmented)
                 Toggle("状態と評価をカードに表示", isOn: $preferences.showsCardDetails)
