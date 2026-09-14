@@ -127,18 +127,34 @@ struct ReleaseSettingsView: View {
                     } label: {
                         Label("表示をカスタマイズ", systemImage: "paintpalette.fill")
                     }
-                    Label("高度な絞り込みはホーム、地図Proはマップから使えます", systemImage: "sparkles")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Label("Pro購入済み", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(Color("BrandOrange"))
                 } else {
                     NavigationLink {
                         ProPaywallView()
                     } label: {
-                        Label("Proの機能を見る", systemImage: "sparkles")
+                        Label("年間ごはんレポート", systemImage: "chart.bar.fill")
                     }
-                    Text("買い切りで、年間レポートと振り返り機能を利用できます。")
+                    NavigationLink {
+                        ProPaywallView()
+                    } label: {
+                        Label("写真の振り返り", systemImage: "photo.stack.fill")
+                    }
+                    NavigationLink {
+                        ProPaywallView()
+                    } label: {
+                        Label("表示をカスタマイズ", systemImage: "paintpalette.fill")
+                    }
+                }
+                Label("投稿画像メーカーは各店舗の詳細から使えます", systemImage: "photo.badge.plus")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Label("高度な絞り込みはホーム、地図Proはマップから使えます", systemImage: "sparkles")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                if proAccess.isProUnlocked {
+                    Label("Pro購入済み", systemImage: "checkmark.seal.fill")
+                        .foregroundStyle(Color("BrandOrange"))
+                } else {
+                    Text("Pro機能を選ぶと、買い切りProの購入画面が開きます。")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Button {

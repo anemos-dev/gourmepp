@@ -40,6 +40,12 @@ struct ProPaywallView: View {
                     )
                     Divider().padding(.leading, 52)
                     ProFeatureRow(
+                        icon: "photo.badge.plus",
+                        title: "投稿画像メーカー",
+                        detail: "4種類のProテンプレートと投稿先に合う画像サイズを利用"
+                    )
+                    Divider().padding(.leading, 52)
+                    ProFeatureRow(
                         icon: "map.fill",
                         title: "地図Pro",
                         detail: "訪問密度と現在地に近い行きたいお店を表示"

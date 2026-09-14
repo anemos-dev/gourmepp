@@ -156,6 +156,24 @@ struct グルメップTests {
         #expect(Place.area(from: "大阪府大阪市北区") == "大阪府")
     }
 
+    @Test func shareCardFreeAndProOptionsStaySeparated() {
+        #expect(ShareCardTemplate.simple.requiresPro == false)
+        #expect(ShareCardTemplate.editorial.requiresPro)
+        #expect(ShareCardTemplate.collage.requiresPro)
+        #expect(ShareCardTemplate.minimal.requiresPro)
+        #expect(ShareCardTemplate.typography.requiresPro)
+        #expect(ShareCardTemplate.allCases.filter(\.requiresPro).count == 4)
+        #expect(ShareCardFormat.portrait.requiresPro == false)
+        #expect(ShareCardFormat.square.requiresPro)
+        #expect(ShareCardFormat.landscape.requiresPro)
+        #expect(ShareCardPalette.warm.requiresPro == false)
+        #expect(ShareCardPalette.sage.requiresPro)
+        #expect(ShareCardPalette.midnight.requiresPro)
+        #expect(ShareCardFormat.portrait.pixelSize == CGSize(width: 1080, height: 1350))
+        #expect(ShareCardFormat.square.pixelSize == CGSize(width: 1080, height: 1080))
+        #expect(ShareCardFormat.landscape.pixelSize == CGSize(width: 1200, height: 675))
+    }
+
     @Test @MainActor func annualFoodReportAggregatesOnlySelectedYearVisits() throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = try #require(TimeZone(secondsFromGMT: 0))
