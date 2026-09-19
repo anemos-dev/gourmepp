@@ -111,7 +111,29 @@ struct PlaceDetailView: View {
                             }
                         }
                     }
-                    Section("共有") { Button { sharing = true } label: { Label("このお店を共有", systemImage: "square.and.arrow.up") }; Text("LINEなど、端末に入っているアプリを選べます。").font(.caption).foregroundStyle(.secondary) }
+                    Section("共有") {
+                        NavigationLink {
+                            ShareCardMakerView(
+                                record: record,
+                                place: place,
+                                photos: photos.filter { $0.recordID == record.id },
+                                tags: tags
+                            )
+                        } label: {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Label("投稿画像を作る", systemImage: "photo.badge.plus")
+                                Text("無料テンプレートあり")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Button { sharing = true } label: {
+                            Label("お店の情報をテキストで共有", systemImage: "square.and.arrow.up")
+                        }
+                        Text("投稿画像は端末内で作成できます。テキスト共有ではLINEなど、端末に入っているアプリを選べます。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .navigationTitle("店舗詳細").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { sharing = true } label: { Label("このお店を共有", systemImage: "square.and.arrow.up") }.accessibilityLabel("\(place.name)を共有") }; ToolbarItem(placement: .topBarTrailing) { Menu { Button("記録を編集", systemImage: "pencil") { editing = true }; Button(role: .destructive) { showDeleteConfirmation = true } label: { Label("ゴミ箱に移動", systemImage: "trash") } } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("その他") } }
