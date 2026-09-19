@@ -117,6 +117,30 @@ enum ShareCardPalette: String, CaseIterable, Identifiable {
     var requiresPro: Bool { self != .warm }
 }
 
+enum ShareCardTextColor: String, CaseIterable, Identifiable {
+    case black
+    case white
+    case orange
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .black: "黒"
+        case .white: "白"
+        case .orange: "オレンジ"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .black: Color(red: 0.12, green: 0.10, blue: 0.08)
+        case .white: .white
+        case .orange: Color("BrandOrange")
+        }
+    }
+}
+
 struct ShareCardContent {
     let placeName: String
     let category: String
@@ -146,6 +170,8 @@ struct ShareCardMakerView: View {
     @State private var template: ShareCardTemplate = .simple
     @State private var format: ShareCardFormat = .portrait
     @State private var palette: ShareCardPalette = .warm
+    @State private var textColor: ShareCardTextColor = .black
+    @State private var fontSizeOffset = 0
     @State private var selectedPhotoIDs: [UUID]
     @State private var options = ShareCardOptions()
     @State private var presentedSheet: ShareCardSheet?
@@ -187,6 +213,8 @@ struct ShareCardMakerView: View {
                     template: template,
                     format: format,
                     palette: palette,
+                    textColor: textColor,
+                    fontSizeOffset: fontSizeOffset,
                     options: options,
                     showsBranding: !proAccess.isProUnlocked
                 )
@@ -196,6 +224,8 @@ struct ShareCardMakerView: View {
                 templateSection
                 formatSection
                 paletteSection
+                textColorSection
+                fontSizeSection
                 photoSection
                 informationSection
 
@@ -338,6 +368,70 @@ struct ShareCardMakerView: View {
         }
     }
 
+    private var textColorSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("文字色", detail: "白・黒・オレンジから選べます")
+            HStack(spacing: 10) {
+                ForEach(ShareCardTextColor.allCases) { candidate in
+                    Button {
+                        withAnimation(.snappy) { textColor = candidate }
+                    } label: {
+                        VStack(spacing: 8) {
+                            Circle()
+                                .fill(candidate.color)
+                                .overlay { Circle().stroke(.secondary.opacity(0.45), lineWidth: 1) }
+                                .frame(width: 38, height: 38)
+                            Text(candidate.title).font(.caption.bold())
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(textColor == candidate ? Color("BrandOrange").opacity(0.12) : Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(textColor == candidate ? Color("BrandOrange") : .clear, lineWidth: 2)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("文字色：\(candidate.title)")
+                }
+            }
+        }
+    }
+
+    private var fontSizeSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            sectionTitle("文字サイズ", detail: "すべての文字をまとめて調整できます")
+            HStack(spacing: 12) {
+                Button {
+                    fontSizeOffset = max(-3, fontSizeOffset - 1)
+                } label: {
+                    Text("−1")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(fontSizeOffset == -3)
+
+                Text(fontSizeOffset == 0 ? "標準" : "\(fontSizeOffset > 0 ? "+" : "")\(fontSizeOffset)")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 56)
+
+                Button {
+                    fontSizeOffset = min(3, fontSizeOffset + 1)
+                } label: {
+                    Text("+1")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(fontSizeOffset == 3)
+            }
+            .accessibilityElement(children: .contain)
+            .accessibilityLabel("文字サイズ")
+        }
+    }
+
     @ViewBuilder
     private var photoSection: some View {
         let recordPhotos = photos.filter { $0.recordID == record.id }
@@ -453,6 +547,8 @@ struct ShareCardMakerView: View {
                 template: template,
                 format: format,
                 palette: palette,
+                textColor: textColor,
+                fontSizeOffset: fontSizeOffset,
                 options: options,
                 showsBranding: !proAccess.isProUnlocked
             )
@@ -497,6 +593,8 @@ private struct ShareCardPreview: View {
     let template: ShareCardTemplate
     let format: ShareCardFormat
     let palette: ShareCardPalette
+    let textColor: ShareCardTextColor
+    let fontSizeOffset: Int
     let options: ShareCardOptions
     let showsBranding: Bool
 
@@ -510,6 +608,8 @@ private struct ShareCardPreview: View {
                 template: template,
                 format: format,
                 palette: palette,
+                textColor: textColor,
+                fontSizeOffset: fontSizeOffset,
                 options: options,
                 showsBranding: showsBranding
             )
@@ -528,6 +628,8 @@ struct ShareCardArtwork: View {
     let template: ShareCardTemplate
     let format: ShareCardFormat
     let palette: ShareCardPalette
+    let textColor: ShareCardTextColor
+    let fontSizeOffset: Int
     let options: ShareCardOptions
     let showsBranding: Bool
 
@@ -558,7 +660,7 @@ struct ShareCardArtwork: View {
                     .padding(18)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .background(palette.background)
-                    .foregroundStyle(palette.ink)
+                    .foregroundStyle(textColor.color)
             }
         } else {
             VStack(spacing: 0) {
@@ -567,7 +669,7 @@ struct ShareCardArtwork: View {
                     .padding(format == .square ? 16 : 22)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .background(palette.background)
-                    .foregroundStyle(palette.ink)
+                    .foregroundStyle(textColor.color)
             }
         }
     }
@@ -579,21 +681,21 @@ struct ShareCardArtwork: View {
             VStack(alignment: .leading, spacing: format == .landscape ? 5 : 9) {
                 if options.showsArea {
                     Text(metadataLine.uppercased())
-                        .font(.system(size: format == .landscape ? 9 : 11, weight: .bold))
+                        .font(.system(size: adjustedFontSize(format == .landscape ? 9 : 11), weight: .bold))
                         .tracking(1.8)
                 }
                 Text(content.placeName)
-                    .font(.system(size: format == .landscape ? 27 : 36, weight: .black, design: .serif))
+                    .font(.system(size: adjustedFontSize(format == .landscape ? 27 : 36), weight: .black, design: .serif))
                     .lineLimit(2)
                     .minimumScaleFactor(0.7)
                 ratingAndDate
                 if options.showsMemo, let memo = content.memo {
-                    Text(memo).font(.system(size: format == .landscape ? 10 : 14)).lineLimit(format == .landscape ? 1 : 2)
+                    Text(memo).font(.system(size: adjustedFontSize(format == .landscape ? 10 : 14))).lineLimit(format == .landscape ? 1 : 2)
                 }
                 tagLine
                 brandLine
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(textColor.color)
             .padding(format == .landscape ? 18 : 28)
             .frame(maxWidth: format == .landscape ? size.width * 0.7 : .infinity, alignment: .leading)
         }
@@ -608,17 +710,17 @@ struct ShareCardArtwork: View {
                     .padding(format == .square ? 14 : 20)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     .background(palette.ink)
-                    .foregroundStyle(palette.background)
+                    .foregroundStyle(textColor.color)
             }
         }
         .overlay(alignment: format == .landscape ? .bottomLeading : .topLeading) {
             if format == .landscape {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(content.placeName).font(.system(size: 26, weight: .black)).lineLimit(1)
+                    Text(content.placeName).font(.system(size: adjustedFontSize(26), weight: .black)).lineLimit(1)
                     ratingAndDate
                     brandLine
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(textColor.color)
                 .padding(16)
                 .background(.black.opacity(0.72))
             }
@@ -638,45 +740,54 @@ struct ShareCardArtwork: View {
                     .padding(.trailing, 14)
             }
             .background(palette.background)
-            .foregroundStyle(palette.ink)
+            .foregroundStyle(textColor.color)
         } else {
+            let isSquare = format == .square
+            let inset: CGFloat = isSquare ? 18 : 24
+            let headerHeight: CGFloat = isSquare ? 24 : 28
+            let photoHeight = size.height * (isSquare ? 0.52 : 0.58)
+
             VStack(alignment: .leading, spacing: 0) {
-                HStack {
-                    Text("DINING NOTE")
-                        .font(.system(size: 9, weight: .medium, design: .serif))
-                        .tracking(2.4)
-                    Spacer()
-                    if options.showsArea {
-                        Text(metadataLine)
-                            .font(.system(size: 8, design: .monospaced))
-                            .lineLimit(1)
-                    }
-                }
-                .foregroundStyle(palette.accent)
-                .padding(.bottom, 14)
+                minimalHeader
+                    .frame(height: headerHeight, alignment: .topLeading)
 
-                photo(images.first)
-                    .frame(height: size.height * (format == .square ? 0.48 : 0.53))
+                minimalPhoto(images.first, height: photoHeight)
 
-                minimalInformation(compact: format == .square)
-                    .padding(.top, format == .square ? 12 : 18)
+                minimalInformation(compact: true)
+                    .padding(.top, isSquare ? 12 : 16)
             }
-            .padding(format == .square ? 18 : 24)
+            .padding(inset)
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
             .background(palette.background)
-            .foregroundStyle(palette.ink)
+            .foregroundStyle(textColor.color)
         }
+    }
+
+    private var minimalHeader: some View {
+        HStack {
+            Text("DINING NOTE")
+                .font(.system(size: adjustedFontSize(9), weight: .medium, design: .serif))
+                .tracking(2.4)
+            Spacer()
+            if options.showsArea {
+                Text(metadataLine)
+                    .font(.system(size: adjustedFontSize(8), design: .monospaced))
+                    .lineLimit(1)
+            }
+        }
+        .foregroundStyle(textColor.color)
     }
 
     private func minimalInformation(compact: Bool) -> some View {
         VStack(alignment: .leading, spacing: compact ? 5 : 8) {
             if format == .landscape, options.showsArea, !metadataLine.isEmpty {
                 Text(metadataLine.uppercased())
-                    .font(.system(size: 7, design: .monospaced))
+                    .font(.system(size: adjustedFontSize(7), design: .monospaced))
                     .tracking(1.1)
-                    .foregroundStyle(palette.accent)
+                    .foregroundStyle(textColor.color)
             }
             Text(content.placeName)
-                .font(.system(size: compact ? 22 : 29, weight: .medium, design: .serif))
+                .font(.system(size: adjustedFontSize(compact ? 22 : 29), weight: .medium, design: .serif))
                 .lineLimit(2)
                 .minimumScaleFactor(0.65)
             Rectangle()
@@ -685,12 +796,14 @@ struct ShareCardArtwork: View {
             ratingAndDate
             if options.showsMemo, let memo = content.memo {
                 Text(memo)
-                    .font(.system(size: compact ? 8 : 11, weight: .light, design: .serif))
+                    .font(.system(size: adjustedFontSize(compact ? 8 : 11), weight: .light, design: .serif))
                     .lineLimit(compact ? 2 : 3)
-                    .foregroundStyle(palette.ink.opacity(0.72))
+                    .foregroundStyle(textColor.color.opacity(0.72))
             }
             tagLine
-            Spacer(minLength: 0)
+            if format == .landscape {
+                Spacer(minLength: 0)
+            }
             brandLine
         }
     }
@@ -722,17 +835,17 @@ struct ShareCardArtwork: View {
         VStack(alignment: .leading, spacing: compact ? 4 : 7) {
             HStack {
                 Text("EAT / NOTE")
-                    .font(.system(size: compact ? 7 : 9, weight: .black, design: .monospaced))
+                    .font(.system(size: adjustedFontSize(compact ? 7 : 9), weight: .black, design: .monospaced))
                     .tracking(1.5)
                 Spacer()
                 if options.showsRating, let rating = content.rating {
                     Text("★\(rating)")
-                        .font(.system(size: compact ? 9 : 11, weight: .bold, design: .monospaced))
-                        .foregroundStyle(palette.accent)
+                        .font(.system(size: adjustedFontSize(compact ? 9 : 11), weight: .bold, design: .monospaced))
+                        .foregroundStyle(textColor.color)
                 }
             }
             Text(content.placeName)
-                .font(.system(size: compact ? 25 : 34, weight: .black, design: .rounded))
+                .font(.system(size: adjustedFontSize(compact ? 25 : 34), weight: .black, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.58)
             HStack(spacing: 7) {
@@ -743,11 +856,11 @@ struct ShareCardArtwork: View {
                     Text(visitDate)
                 }
             }
-            .font(.system(size: compact ? 7 : 9, weight: .bold, design: .monospaced))
+            .font(.system(size: adjustedFontSize(compact ? 7 : 9), weight: .bold, design: .monospaced))
             .lineLimit(1)
             if options.showsMemo, let memo = content.memo {
                 Text(memo)
-                    .font(.system(size: compact ? 8 : 10, weight: .medium, design: .monospaced))
+                    .font(.system(size: adjustedFontSize(compact ? 8 : 10), weight: .medium, design: .monospaced))
                     .lineLimit(compact ? 1 : 2)
                     .opacity(0.76)
             }
@@ -755,7 +868,7 @@ struct ShareCardArtwork: View {
             Spacer(minLength: 0)
             brandLine
         }
-        .foregroundStyle(palette.background)
+        .foregroundStyle(textColor.color)
     }
 
     private var photoCollage: some View {
@@ -781,20 +894,20 @@ struct ShareCardArtwork: View {
         VStack(alignment: .leading, spacing: compact ? 5 : 8) {
             if options.showsArea, !metadataLine.isEmpty {
                 Text(metadataLine.uppercased())
-                    .font(.system(size: compact ? 8 : 10, weight: .bold))
+                    .font(.system(size: adjustedFontSize(compact ? 8 : 10), weight: .bold))
                     .tracking(1.4)
                     .foregroundStyle(palette.accent)
             }
             Text(content.placeName)
-                .font(.system(size: compact ? 24 : 31, weight: .black, design: .rounded))
+                .font(.system(size: adjustedFontSize(compact ? 24 : 31), weight: .black, design: .rounded))
                 .lineLimit(2)
                 .minimumScaleFactor(0.65)
             ratingAndDate
             if options.showsMemo, let memo = content.memo {
                 Text(memo)
-                    .font(.system(size: compact ? 10 : 13))
+                    .font(.system(size: adjustedFontSize(compact ? 10 : 13)))
                     .lineLimit(compact ? 1 : 2)
-                    .foregroundStyle(template == .collage ? palette.background.opacity(0.78) : palette.ink.opacity(0.72))
+                    .foregroundStyle(textColor.color.opacity(0.72))
             }
             tagLine
             Spacer(minLength: 0)
@@ -811,14 +924,14 @@ struct ShareCardArtwork: View {
                 Text(visitDate)
             }
         }
-        .font(.system(size: format == .landscape ? 9 : 11))
+        .font(.system(size: adjustedFontSize(format == .landscape ? 9 : 11)))
     }
 
     @ViewBuilder
     private var tagLine: some View {
         if options.showsTags, !content.tags.isEmpty {
             Text(content.tags.prefix(4).map { "#\($0.replacingOccurrences(of: " ", with: ""))" }.joined(separator: "  "))
-                .font(.system(size: format == .landscape ? 8 : 10, weight: .semibold))
+                .font(.system(size: adjustedFontSize(format == .landscape ? 8 : 10), weight: .semibold))
                 .lineLimit(1)
         }
     }
@@ -830,13 +943,40 @@ struct ShareCardArtwork: View {
                 Image(systemName: "fork.knife")
                 Text("GOURMEPP").fontWeight(.bold).tracking(1.2)
             }
-            .font(.system(size: format == .landscape ? 7 : 9))
+            .font(.system(size: adjustedFontSize(format == .landscape ? 7 : 9)))
             .opacity(0.72)
         }
     }
 
     private var metadataLine: String {
         [content.area, content.category].filter { !$0.isEmpty }.joined(separator: "  •  ")
+    }
+
+    private func adjustedFontSize(_ size: CGFloat) -> CGFloat {
+        max(6, size + CGFloat(fontSizeOffset))
+    }
+
+    @ViewBuilder
+    private func minimalPhoto(_ image: UIImage?, height: CGFloat) -> some View {
+        ZStack {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                LinearGradient(
+                    colors: [palette.background, palette.accent],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                Image(systemName: "fork.knife.circle.fill")
+                    .font(.system(size: 72))
+                    .foregroundStyle(.white.opacity(0.82))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: height)
+        .clipped()
     }
 
     private func photo(_ image: UIImage?) -> some View {
