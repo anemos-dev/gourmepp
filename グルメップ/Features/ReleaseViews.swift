@@ -9,6 +9,8 @@ import UserNotifications
 struct OnboardingView: View {
     let completion: () -> Void
     @State private var page = 0
+    @AppStorage("hasAcceptedReleaseLegal") private var hasAcceptedReleaseLegal = false
+    @State private var hasAgreedToLegal = false
 
     private let pages: [(icon: String, title: String, message: String)] = [
         ("fork.knife.circle.fill", "好きなお店を、忘れない", "行ったお店も、これから行きたいお店も、写真と一緒に自分だけの記録にできます。"),
@@ -18,49 +20,93 @@ struct OnboardingView: View {
     ]
 
     var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                TabView(selection: $page) {
+                    ForEach(pages.indices, id: \.self) { index in
+                        onboardingPage(pages[index]).tag(index)
+                    }
+                    legalAgreementPage.tag(pages.count)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+
+                HStack(spacing: 8) {
+                    ForEach(0...pages.count, id: \.self) { index in
+                        Capsule()
+                            .fill(index == page ? Color("BrandOrange") : .secondary.opacity(0.25))
+                            .frame(width: index == page ? 28 : 8, height: 8)
+                    }
+                }
+                Button(page == pages.count ? "同意してはじめる" : "次へ") {
+                    if page == pages.count {
+                        hasAcceptedReleaseLegal = true
+                        completion()
+                    } else {
+                        withAnimation { page += 1 }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal)
+                .disabled(page == pages.count && !hasAgreedToLegal)
+
+                if page == pages.count {
+                    Button("サンプルを追加してはじめる", action: addSampleAndComplete)
+                        .disabled(!hasAgreedToLegal)
+                }
+            }
+            .padding(.vertical, 28)
+            .background(Color("PinterestCanvas").ignoresSafeArea())
+        }
+        .interactiveDismissDisabled()
+        .onAppear { hasAgreedToLegal = hasAcceptedReleaseLegal }
+    }
+
+    private func onboardingPage(_ item: (icon: String, title: String, message: String)) -> some View {
         VStack(spacing: 24) {
             Spacer()
-            Image(systemName: pages[page].icon)
+            Image(systemName: item.icon)
                 .font(.system(size: 72))
                 .foregroundStyle(Color("BrandOrange"))
                 .accessibilityHidden(true)
-            Text(pages[page].title)
+            Text(item.title)
                 .font(.largeTitle.bold())
                 .multilineTextAlignment(.center)
-            Text(pages[page].message)
+            Text(item.message)
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
             Spacer()
-            HStack(spacing: 8) {
-                ForEach(pages.indices, id: \.self) { index in
-                    Capsule()
-                        .fill(index == page ? Color("BrandOrange") : .secondary.opacity(0.25))
-                        .frame(width: index == page ? 28 : 8, height: 8)
-                }
-            }
-            Button(page == pages.count - 1 ? "はじめる" : "次へ") {
-                if page == pages.count - 1 {
-                    completion()
-                } else {
-                    withAnimation { page += 1 }
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal)
-            if page < pages.count - 1 {
-                Button("スキップ", action: completion)
-                    .foregroundStyle(.secondary)
-            } else {
-                Button("サンプルを追加してはじめる", action: addSampleAndComplete)
-            }
         }
-        .padding(.vertical, 28)
-        .background(Color("PinterestCanvas").ignoresSafeArea())
-        .interactiveDismissDisabled()
+    }
+
+    private var legalAgreementPage: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            Image(systemName: "checkmark.shield.fill")
+                .font(.system(size: 64))
+                .foregroundStyle(Color("BrandOrange"))
+                .accessibilityHidden(true)
+            Text("ご利用前の確認")
+                .font(.largeTitle.bold())
+            Text("グルメップは記録を端末内に保存します。ご利用前に、利用規約とプライバシーポリシーをご確認ください。")
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal)
+            HStack(spacing: 16) {
+                NavigationLink("利用規約") { TermsView() }
+                NavigationLink("プライバシーポリシー") { PrivacyPolicyView() }
+            }
+            .font(.subheadline.weight(.semibold))
+            Toggle("利用規約とプライバシーポリシーに同意する", isOn: $hasAgreedToLegal)
+                .padding()
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal)
+            Spacer()
+        }
     }
 
     @Environment(\.modelContext) private var context
@@ -68,6 +114,7 @@ struct OnboardingView: View {
     private func addSampleAndComplete() {
         do {
             try ReleasePreviewSampleData.add(to: context)
+            hasAcceptedReleaseLegal = true
             completion()
         } catch {
             errors.show(error, title: "サンプルを追加できませんでした")
@@ -159,27 +206,15 @@ struct ReleaseSettingsView: View {
                         Label("表示をカスタマイズ", systemImage: "paintpalette.fill")
                     }
                 }
-                Label("投稿画像メーカーは各店舗の詳細から使えます", systemImage: "photo.badge.plus")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Label("高度な絞り込みはホーム、地図Proはマップから使えます", systemImage: "sparkles")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 if proAccess.isProUnlocked {
                     Label("Pro購入済み", systemImage: "checkmark.seal.fill")
                         .foregroundStyle(Color("BrandOrange"))
                 } else {
-                    Text("Pro機能を選ぶと、買い切りProの購入画面が開きます。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                     Button {
                         showOfferCodeRedemption = true
                     } label: {
                         Label("特典コードを使う", systemImage: "ticket.fill")
                     }
-                    Text("App Store Connectで発行されたコードを入力できます。")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -798,43 +833,75 @@ struct PermissionSettingsView: View {
 
 struct PrivacyPolicyView: View {
     var body: some View {
-        List {
-            Section("保存する情報") {
-                Text("店舗名、住所、評価、メモ、タグ、写真など、利用者が入力した情報を端末内に保存します。")
-            }
-            Section("外部への送信") {
-                Text("グルメップは、記録した情報を開発者のサーバーへ送信しません。店舗検索と地図表示ではAppleのMapKitを利用します。")
-            }
-            Section("権限") {
-                Text("位置情報は周辺検索、写真ライブラリは写真の追加に使用します。許可しない場合も、手入力で記録できます。")
-            }
-            Section("バックアップ") {
-                Text("バックアップファイルには写真やメモなどが含まれます。安全な場所で管理し、第三者への共有にご注意ください。")
-            }
-            Section("削除") {
-                Text("設定の「すべてのデータを削除」から、端末内の記録と写真を削除できます。")
-            }
-        }
-        .navigationTitle("プライバシーポリシー")
+        LegalDocumentView(document: .privacy)
     }
 }
 
 struct TermsView: View {
     var body: some View {
+        LegalDocumentView(document: .terms)
+    }
+}
+
+private enum LegalDocument {
+    case privacy, terms
+
+    var title: String { self == .privacy ? "プライバシーポリシー" : "利用規約" }
+    var introduction: String {
+        switch self {
+        case .privacy:
+            "最終更新日：2026年9月21日\n\nグルメップ（以下「本アプリ」）は、飲食店の訪問記録を利用者自身の端末で管理するためのアプリです。本ポリシーは、本アプリで取り扱う情報、その目的、利用者が選べる設定および問い合わせ方法を説明するものです。"
+        case .terms:
+            "最終更新日：2026年9月21日\n\nこの利用規約（以下「本規約」）は、グルメップ（以下「本アプリ」）の利用条件を定めるものです。利用者は、本規約およびプライバシーポリシーに同意したうえで本アプリを利用するものとします。"
+        }
+    }
+    var sections: [(String, String)] {
+        switch self {
+        case .privacy:
+            [
+                ("1. 保存する情報", "本アプリは、利用者が入力、選択または作成した店舗名、住所、カテゴリ、位置情報、電話番号、WebサイトURL、訪問予定・訪問履歴、訪問日、評価、メニュー、メモ、タグ、コレクション、写真および表示・通知等の設定情報を、機能提供のため利用者の端末内に保存します。入力内容には、利用者自身または第三者に関する情報が含まれる場合があります。必要以上の個人情報や、他者のプライバシーを侵害する情報を記録しないようご注意ください。"),
+                ("2. 開発者による収集・送信", "現行版の本アプリは、利用者が記録した店舗情報、写真、メモ、位置情報その他の記録を、開発者が運営するサーバーへ送信、収集、販売または広告目的で利用しません。アカウント登録、ログイン、広告SDKおよび行動分析SDKも使用していません。ただし、利用者が自ら共有、書き出し、または外部サービスの検索・地図機能を利用した場合の通信は、この限りではありません。"),
+                ("3. 端末の権限", "位置情報は、利用者が現在地付近の店舗を検索する操作を行うためにのみ利用します。写真ライブラリおよびカメラは、利用者が記録に写真を追加するためにのみ利用します。通知は、利用者が月1回のバックアップ通知を有効にした場合にのみ利用します。各権限はiOSの設定からいつでも変更できます。権限を許可しない場合でも、該当機能を除き、店舗情報や記録を手入力して利用できます。"),
+                ("4. Appleのサービス", "店舗検索および地図表示にはAppleのMapKitを使用します。これらの機能を利用すると、検索語句、端末の現在地または表示対象の位置情報等がAppleに送信される場合があります。Appleによる情報の取扱いはAppleのプライバシーポリシーおよび関連する条件に従います。本アプリの開発者は、Appleがこれらのサービスを通じて取り扱う情報を管理するものではありません。"),
+                ("5. バックアップ、書き出しおよび共有", "利用者が作成するバックアップ、CSVまたはEPUBには、店舗情報、訪問記録、メモ、写真その他の記録が含まれる場合があります。ファイルの保存先、共有先、受領者および第三者サービスにおける取扱いは利用者の責任で管理してください。共有シートから送信した内容は、選択したアプリまたはサービスの規約・ポリシーに従います。公開の場への共有は、位置情報、写真内の人物、メモ等が意図せず開示されないよう特に注意してください。"),
+                ("6. 保管期間と削除", "本アプリ内のデータは、利用者が削除するまで端末内に保持されます。ゴミ箱に移した記録は、利用者が設定した保存期間に従って削除される場合があります。設定画面の「すべてのデータを削除」により、端末内の記録と本アプリが管理する写真データを削除できます。アプリを削除した場合のデータの扱いはiOSおよび端末のバックアップ設定に従います。利用者が既に書き出したファイル、共有先のコピー、端末やクラウドのバックアップ内のデータは別途削除が必要です。"),
+                ("7. 安全管理", "本アプリは、データを端末内で扱う設計を採用していますが、端末の紛失、第三者による端末へのアクセス、OSや他アプリの不具合、バックアップ先の管理不備等による情報の漏えい・消失を完全に防止するものではありません。端末の画面ロック、OSの更新、信頼できる保存先でのバックアップ管理を推奨します。"),
+                ("8. 未成年者", "未成年の利用者は、法定代理人等の同意を得たうえで本アプリを利用してください。写真、位置情報、他者の情報を記録または共有する際は、法令および周囲の方の権利・プライバシーに配慮してください。"),
+                ("9. ポリシーの変更", "法令、機能、外部サービスまたは安全対策の変更に応じて、本ポリシーを変更することがあります。重要な変更を行う場合は、本アプリ内または公開ページで、合理的な方法により内容と効力発生日をお知らせします。変更後も本アプリを利用する場合、変更後のポリシーに同意したものとします。"),
+                ("10. お問い合わせ", "本ポリシーに関するお問い合わせは、アプリ内の「お問い合わせ内容を共有」または anemos.dev@gmail.com までお寄せください。公開版は https://gourmepp-support.pages.dev/privacy/ でも確認できます。")
+            ]
+        case .terms:
+            [
+                ("1. 適用", "本規約は、本アプリの利用に関する開発者と利用者との間の権利義務を定めます。本アプリに関して別途表示される注意事項、購入条件、Apple Media Services利用規約およびプライバシーポリシーは、本規約の一部を構成します。"),
+                ("2. 利用条件", "利用者は、自らの責任で本アプリを利用し、入力、保存、書き出しまたは共有する情報について必要な権利と権限を有することを保証します。本アプリは個人の飲食店記録を管理する目的で提供されます。事業用途その他の利用を妨げるものではありませんが、その適法性、正確性および利用結果は利用者自身が確認してください。"),
+                ("3. 記録内容と第三者の権利", "店舗情報、写真、メモ、評価、位置情報その他の記録は利用者が管理する内容です。利用者は、著作権、肖像権、プライバシー権、商標権その他の第三者の権利、ならびに法令・店舗ルールを侵害しないように利用してください。第三者が写る写真や非公開情報を共有する場合は、必要な同意を得てください。"),
+                ("4. 禁止事項", "利用者は、法令または公序良俗に反する行為、第三者の権利・利益を侵害する行為、不正アクセスや本アプリの解析・妨害を目的とする行為、虚偽または誤認を招く情報を不正な目的で利用する行為、ならびに開発者または第三者に損害を与える行為をしてはなりません。"),
+                ("5. 店舗情報・地図情報", "本アプリで表示または検索される店舗、地図、営業時間、所在地その他の情報は、常に正確、完全、最新または利用可能であることを保証しません。来店、予約、購入その他の判断は、利用者が店舗その他の提供元へ確認したうえで行ってください。本アプリは店舗との予約、取引または提携を仲介するものではありません。"),
+                ("6. データとバックアップ", "記録は原則として利用者の端末内に保存されます。端末の故障、紛失、OS更新、容量不足、アプリの削除、操作ミス、復元の失敗等によりデータが失われる可能性があります。利用者は必要に応じてバックアップを作成し、安全な場所で保管してください。書き出し・復元・共有によるデータの上書き、重複、漏えいまたは損失について、開発者は法令上責任を負う場合を除き責任を負いません。"),
+                ("7. Pro機能と購入", "Pro機能が提供される場合、その内容、価格、購入条件および返金は購入画面ならびにAppleの条件に従います。購入処理、請求、特典コード、返金および購入履歴の管理はAppleが行う場合があります。購入前に表示内容を確認してください。法令上認められる場合を除き、購入済みの権利を他者へ譲渡、換金または転売することはできません。"),
+                ("8. 提供の変更・中断", "開発者は、保守、安全性の確保、法令対応、機能改善その他合理的な必要がある場合、本アプリの全部または一部を変更、追加、中断または終了することがあります。可能な場合は事前にお知らせしますが、緊急時は事後のお知らせとなることがあります。"),
+                ("9. 免責と責任の制限", "本アプリは現状有姿で提供され、特定目的への適合性、完全性、継続性、無エラー性またはデータの完全な保持を保証しません。開発者は、故意または重過失による場合、消費者契約法その他の強行法規により免責が認められない場合を除き、本アプリの利用または利用不能から生じた間接損害、特別損害、逸失利益およびデータ損失について責任を負いません。"),
+                ("10. 規約の変更とお問い合わせ", "開発者は、本規約を変更することがあります。重要な変更は本アプリ内または公開ページで合理的に告知します。変更後も利用を継続した場合、変更後の規約に同意したものとします。本規約に関するお問い合わせは anemos.dev@gmail.com までお寄せください。")
+            ]
+        }
+    }
+}
+
+private struct LegalDocumentView: View {
+    let document: LegalDocument
+
+    var body: some View {
         List {
-            Section("利用について") {
-                Text("本アプリは、個人の飲食店記録を管理するためのツールです。店舗情報や営業時間などは最新でない場合があります。")
+            Section {
+                Text(document.introduction)
             }
-            Section("データ管理") {
-                Text("端末の故障、紛失、アプリの削除に備え、利用者自身で定期的にバックアップを作成してください。")
-            }
-            Section("禁止事項") {
-                Text("法令または第三者の権利を侵害する目的で本アプリを使用しないでください。")
-            }
-            Section("変更") {
-                Text("機能追加や法令の変更に応じて、本内容を更新する場合があります。")
+            ForEach(Array(document.sections.enumerated()), id: \.offset) { _, section in
+                Section(section.0) {
+                    Text(section.1)
+                }
             }
         }
-        .navigationTitle("利用規約")
+        .navigationTitle(document.title)
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
