@@ -24,6 +24,7 @@ struct AppView: View {
     @Environment(ProPreferences.self) private var proPreferences
     @State private var tab: AppTab = .home
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @AppStorage("hasAcceptedReleaseLegal") private var hasAcceptedReleaseLegal = false
     var body: some View {
         TabView(selection: $tab) {
             NavigationStack { HomeView() }.tabItem { Label("ホーム", systemImage: "house") }.tag(AppTab.home)
@@ -34,10 +35,11 @@ struct AppView: View {
         .tint(proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange"))
         .toolbarBackground(Color("PinterestCanvas"), for: .tabBar)
         .fullScreenCover(isPresented: Binding(
-            get: { !hasCompletedOnboarding && !ProcessInfo.processInfo.arguments.contains("-skipOnboarding") },
-            set: { if !$0 { hasCompletedOnboarding = true } }
+            get: { !hasCompletedOnboarding || !hasAcceptedReleaseLegal },
+            set: { _ in }
         )) {
             OnboardingView {
+                hasAcceptedReleaseLegal = true
                 hasCompletedOnboarding = true
             }
         }
