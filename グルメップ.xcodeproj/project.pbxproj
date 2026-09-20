@@ -24,36 +24,36 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		16571A24300A133E009AB520 /* グルメップ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "グルメップ.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		16571A33300A1340009AB520 /* グルメップTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "グルメップTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		16571A3D300A1340009AB520 /* グルメップUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "グルメップUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		16571A24300A133E009AB520 /* グルメップ.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "グルメップ.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		16571A33300A1340009AB520 /* グルメップTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "グルメップTests.xctest"; path = "グルメップTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		16571A3D300A1340009AB520 /* グルメップUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; name = "グルメップUITests.xctest"; path = "グルメップUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		6A000001300A133E009AB520 /* Exceptions for "グルメップ" folder in "グルメップ" target */ = {
+		6A000001300A133E009AB520 /* Exceptions for "グルメップ" folder in "グルメップ" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = 16571A23300A133E009AB520 /* グルメップ */;
+			target = 16571A23300A133E009AB520 /* グルメップ */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		16571A26300A133E009AB520 /* グルメップ */ = {
+		16571A26300A133E009AB520 /* グルメップ */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				6A000001300A133E009AB520 /* Exceptions for "グルメップ" folder in "グルメップ" target */,
+				6A000001300A133E009AB520 /* Exceptions for "グルメップ" folder in "グルメップ" target */,
 			);
 			path = "グルメップ";
 			sourceTree = "<group>";
 		};
-		16571A36300A1340009AB520 /* グルメップTests */ = {
+		16571A36300A1340009AB520 /* グルメップTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "グルメップTests";
 			sourceTree = "<group>";
 		};
-		16571A40300A1340009AB520 /* グルメップUITests */ = {
+		16571A40300A1340009AB520 /* グルメップUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "グルメップUITests";
 			sourceTree = "<group>";
@@ -88,9 +88,9 @@
 		16571A1B300A133E009AB520 = {
 			isa = PBXGroup;
 			children = (
-				16571A26300A133E009AB520 /* グルメップ */,
-				16571A36300A1340009AB520 /* グルメップTests */,
-				16571A40300A1340009AB520 /* グルメップUITests */,
+				16571A26300A133E009AB520 /* グルメップ */,
+				16571A36300A1340009AB520 /* グルメップTests */,
+				16571A40300A1340009AB520 /* グルメップUITests */,
 				16571A25300A133E009AB520 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -98,9 +98,9 @@
 		16571A25300A133E009AB520 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				16571A24300A133E009AB520 /* グルメップ.app */,
-				16571A33300A1340009AB520 /* グルメップTests.xctest */,
-				16571A3D300A1340009AB520 /* グルメップUITests.xctest */,
+				16571A24300A133E009AB520 /* グルメップ.app */,
+				16571A33300A1340009AB520 /* グルメップTests.xctest */,
+				16571A3D300A1340009AB520 /* グルメップUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -108,9 +108,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		16571A23300A133E009AB520 /* グルメップ */ = {
+		16571A23300A133E009AB520 /* グルメップ */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 16571A47300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップ" */;
+			buildConfigurationList = 16571A47300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップ" */;
 			buildPhases = (
 				16571A20300A133E009AB520 /* Sources */,
 				16571A21300A133E009AB520 /* Frameworks */,
@@ -121,18 +121,18 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				16571A26300A133E009AB520 /* グルメップ */,
+				16571A26300A133E009AB520 /* グルメップ */,
 			);
 			name = "グルメップ";
 			packageProductDependencies = (
 			);
 			productName = "グルメップ";
-			productReference = 16571A24300A133E009AB520 /* グルメップ.app */;
+			productReference = 16571A24300A133E009AB520 /* グルメップ.app */;
 			productType = "com.apple.product-type.application";
 		};
-		16571A32300A1340009AB520 /* グルメップTests */ = {
+		16571A32300A1340009AB520 /* グルメップTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 16571A4A300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップTests" */;
+			buildConfigurationList = 16571A4A300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップTests" */;
 			buildPhases = (
 				16571A2F300A1340009AB520 /* Sources */,
 				16571A30300A1340009AB520 /* Frameworks */,
@@ -144,18 +144,18 @@
 				16571A35300A1340009AB520 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				16571A36300A1340009AB520 /* グルメップTests */,
+				16571A36300A1340009AB520 /* グルメップTests */,
 			);
 			name = "グルメップTests";
 			packageProductDependencies = (
 			);
 			productName = "グルメップTests";
-			productReference = 16571A33300A1340009AB520 /* グルメップTests.xctest */;
+			productReference = 16571A33300A1340009AB520 /* グルメップTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		16571A3C300A1340009AB520 /* グルメップUITests */ = {
+		16571A3C300A1340009AB520 /* グルメップUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 16571A4D300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップUITests" */;
+			buildConfigurationList = 16571A4D300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップUITests" */;
 			buildPhases = (
 				16571A39300A1340009AB520 /* Sources */,
 				16571A3A300A1340009AB520 /* Frameworks */,
@@ -167,13 +167,13 @@
 				16571A3F300A1340009AB520 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
-				16571A40300A1340009AB520 /* グルメップUITests */,
+				16571A40300A1340009AB520 /* グルメップUITests */,
 			);
 			name = "グルメップUITests";
 			packageProductDependencies = (
 			);
 			productName = "グルメップUITests";
-			productReference = 16571A3D300A1340009AB520 /* グルメップUITests.xctest */;
+			productReference = 16571A3D300A1340009AB520 /* グルメップUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
@@ -199,7 +199,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 16571A1F300A133E009AB520 /* Build configuration list for PBXProject "グルメップ" */;
+			buildConfigurationList = 16571A1F300A133E009AB520 /* Build configuration list for PBXProject "グルメップ" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -213,9 +213,9 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				16571A23300A133E009AB520 /* グルメップ */,
-				16571A32300A1340009AB520 /* グルメップTests */,
-				16571A3C300A1340009AB520 /* グルメップUITests */,
+				16571A23300A133E009AB520 /* グルメップ */,
+				16571A32300A1340009AB520 /* グルメップTests */,
+				16571A3C300A1340009AB520 /* グルメップUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -271,12 +271,12 @@
 /* Begin PBXTargetDependency section */
 		16571A35300A1340009AB520 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 16571A23300A133E009AB520 /* グルメップ */;
+			target = 16571A23300A133E009AB520 /* グルメップ */;
 			targetProxy = 16571A34300A1340009AB520 /* PBXContainerItemProxy */;
 		};
 		16571A3F300A1340009AB520 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 16571A23300A133E009AB520 /* グルメップ */;
+			target = 16571A23300A133E009AB520 /* グルメップ */;
 			targetProxy = 16571A3E300A1340009AB520 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -550,7 +550,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		16571A1F300A133E009AB520 /* Build configuration list for PBXProject "グルメップ" */ = {
+		16571A1F300A133E009AB520 /* Build configuration list for PBXProject "グルメップ" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				16571A45300A1340009AB520 /* Debug */,
@@ -559,7 +559,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		16571A47300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップ" */ = {
+		16571A47300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップ" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				16571A48300A1340009AB520 /* Debug */,
@@ -568,7 +568,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		16571A4A300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップTests" */ = {
+		16571A4A300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				16571A4B300A1340009AB520 /* Debug */,
@@ -577,7 +577,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		16571A4D300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップUITests" */ = {
+		16571A4D300A1340009AB520 /* Build configuration list for PBXNativeTarget "グルメップUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				16571A4E300A1340009AB520 /* Debug */,
