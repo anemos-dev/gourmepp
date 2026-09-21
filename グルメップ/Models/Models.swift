@@ -47,6 +47,8 @@ enum InitialReleasePrivacy {
 }
 
 @Model final class Place {
+    var nextMealNote: String = ""
+    var wantsToReturn: Bool = false
     var id: UUID = UUID(); var externalPlaceID: String?; var name: String = ""; var address: String = ""; var area: String = ""; var latitude: Double = 0; var longitude: Double = 0; var phoneNumber: String = ""; var websiteURL: String = ""; var category: String = ""; var openingHours: String = ""; var createdAt: Date = Date()
     init(name: String, address: String = "", latitude: Double = 0, longitude: Double = 0, externalPlaceID: String? = nil, category: String = "") { self.name = name; self.address = address; self.area = Self.area(from: address); self.latitude = latitude; self.longitude = longitude; self.externalPlaceID = externalPlaceID; self.category = category }
     static func area(from address: String) -> String {
@@ -96,9 +98,10 @@ enum InitialReleasePrivacy {
 
 extension Array where Element == RestaurantRecord {
     func filtered(query: String, tags: Set<UUID>, places: [Place]) -> [RestaurantRecord] {
-        filter { record in
+        let needle = SearchText.normalize(query)
+        return filter { record in
             let place = places.first { $0.id == record.placeID }
-            let matchesText = query.isEmpty || (place?.name.localizedCaseInsensitiveContains(query) == true) || (place?.address.localizedCaseInsensitiveContains(query) == true) || record.memo.localizedCaseInsensitiveContains(query)
+            let matchesText = needle.isEmpty || [place?.name ?? "", place?.address ?? "", place?.area ?? "", record.memo].contains { SearchText.normalize($0).contains(needle) }
             return matchesText && tags.isSubset(of: Set(record.tagIDs))
         }
     }

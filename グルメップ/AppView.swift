@@ -55,6 +55,7 @@ struct HomeView: View {
     @Query private var tags: [Tag]
     @Query private var photos: [RecordPhoto]
     @State private var statusFilter: HomeStatusFilter = .all; @State private var query = ""; @State private var selectedTags: Set<UUID> = []; @State private var layout: HomeLayout = .grid; @State private var favoritesOnly = false; @State private var selectedPrice: Int?; @State private var selectedArea = ""; @State private var sort: RecordSort = .updated; @State private var minimumRating = 0.0; @State private var hasPhotosOnly = false; @State private var didApplyHomePreferences = false
+    @State private var returnsOnly = false
     private var areas: [String] { Array(Set(places.map { $0.area.isEmpty ? Place.area(from: $0.address) : $0.area }.filter { !$0.isEmpty })).sorted() }
     private var displayed: [RestaurantRecord] {
         let recordsWithPhotos = Set(photos.map(\.recordID))
@@ -62,6 +63,7 @@ struct HomeView: View {
             !record.isDeleted && (statusFilter.status == nil || record.status == statusFilter.status)
         }
             .filter { !favoritesOnly || $0.isFavorite }
+            .filter { record in !returnsOnly || places.first { $0.id == record.placeID }?.wantsToReturn == true }
             .filter { selectedPrice == nil || $0.price == selectedPrice }
             .filter { minimumRating == 0 || $0.displayRating >= minimumRating }
             .filter { !hasPhotosOnly || recordsWithPhotos.contains($0.id) }
@@ -95,6 +97,10 @@ struct HomeView: View {
                         ForEach(RecordSort.allCases) { Text($0.title).tag($0) }
                     }
                     Toggle("お気に入りのみ", isOn: $favoritesOnly)
+                    Toggle("また行きたいのみ", isOn: $returnsOnly)
+                    NavigationLink { BulkRecordOrganizer(recordIDs: displayed.map(\.id)) } label: {
+                        Label("記録をまとめて整理", systemImage: "checklist")
+                    }
                     Menu("価格帯") {
                         Button("すべて") { selectedPrice = nil }
                         ForEach(1...4, id: \.self) { price in
@@ -214,7 +220,7 @@ struct HomeView: View {
         }
     }
     private var hasActiveFilters: Bool {
-        !query.isEmpty || !selectedTags.isEmpty || favoritesOnly || selectedPrice != nil || !selectedArea.isEmpty || minimumRating > 0 || hasPhotosOnly
+        !query.isEmpty || !selectedTags.isEmpty || returnsOnly || favoritesOnly || selectedPrice != nil || !selectedArea.isEmpty || minimumRating > 0 || hasPhotosOnly
     }
     private var emptyTitle: String {
         if hasActiveFilters { return "条件に合うお店がありません" }
@@ -224,6 +230,7 @@ struct HomeView: View {
         query = ""
         selectedTags = []
         favoritesOnly = false
+        returnsOnly = false
         selectedPrice = nil
         selectedArea = ""
         minimumRating = 0
@@ -280,6 +287,10 @@ private struct HomeListCard: View {
                 }
                 .font(.subheadline.weight(.medium))
 
+                if place?.wantsToReturn == true {
+                    Label("また行きたい", systemImage: "arrow.uturn.backward.circle.fill")
+                        .font(.caption).foregroundStyle(Color("BrandOrange"))
+                }
                 Text([place?.category, place?.area].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "・"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -325,7 +336,7 @@ private struct HomeListCard: View {
 
     private var accessibilityText: String {
         let rating = record.displayRating > 0 ? "評価\(record.ratingText)" : "未評価"
-        return "\(place?.name ?? "店舗")、\(rating)、\(record.status.title)"
+        return "\(place?.name ?? "店舗")、\(rating)、\(record.status.title)\(place?.wantsToReturn == true ? "、また行きたい" : "")"
     }
 }
 
@@ -401,6 +412,9 @@ private struct PinterestRecordTile: View {
                         Text(place?.name ?? "店舗")
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(2)
+                        if place?.wantsToReturn == true {
+                            Label("また行きたい", systemImage: "arrow.uturn.backward.circle.fill").font(.caption2)
+                        }
                         if showsCardDetails && record.displayRating > 0 { Text("★ \(record.ratingText)").font(.caption.weight(.medium)) }
                     }
                     .foregroundStyle(.white)
@@ -413,7 +427,7 @@ private struct PinterestRecordTile: View {
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(place?.name ?? "店舗")、\(record.status.title)")
+        .accessibilityLabel("\(place?.name ?? "店舗")、\(record.status.title)\(place?.wantsToReturn == true ? "、また行きたい" : "")")
         .accessibilityIdentifier("restaurantCard-\(record.id.uuidString)")
     }
     @ViewBuilder private var image: some View {

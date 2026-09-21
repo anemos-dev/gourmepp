@@ -116,6 +116,10 @@ struct RecordStartView: View {
 struct ManualPlaceView: View { @Environment(\.dismiss) private var dismiss; @State private var name = ""; @State private var address = ""; var body: some View { Form { TextField("店名（必須）", text: $name).accessibilityIdentifier("manualPlaceName"); TextField("住所", text: $address).accessibilityIdentifier("manualPlaceAddress"); NavigationLink("このお店を記録") { RecordEditor(candidate: PlaceCandidate(id: UUID().uuidString, name: name, address: address, latitude: 0, longitude: 0, category: "")) }.disabled(name.isEmpty).accessibilityIdentifier("recordManualPlace") }.navigationTitle("店舗を手入力").toolbar { ToolbarItem(placement: .cancellationAction) { Button("閉じる") { dismiss() } } } } }
 
 struct RecordEditor: View {
+    @Environment(ProAccessController.self) private var proAccess
+    @State private var nextMealNote = ""
+    @State private var wantsToReturn = false
+    @State private var didLoadPlacePreferences = false
     @Environment(\.modelContext) private var context; @Environment(\.dismiss) private var dismiss; @Environment(AppErrorCenter.self) private var errors; @Query private var places: [Place]; @Query private var tags: [Tag]
     let candidate: PlaceCandidate; @State private var status: RecordStatus = .visited; @State private var ratingHalfSteps = 0; @State private var memo = ""; @State private var relatedLinks: [RelatedLinkDraft] = [RelatedLinkDraft()]; @State private var visitDate = Date(); @State private var includeDate = true; @State private var selectedTags: Set<UUID> = []; @State private var newTagName = ""; @State private var photos: [PhotosPickerItem] = []; @State private var priceTier = 0; @State private var menuItems: [MenuDraft] = []; @State private var isSaving = false
 
@@ -124,7 +128,8 @@ struct RecordEditor: View {
             Section("店舗") { Text(candidate.name).font(.headline); Text(candidate.address).font(.caption) }
             Section("必須") { Picker("ステータス", selection: $status) { ForEach(RecordStatus.allCases) { Text($0.title).tag($0) } }.pickerStyle(.segmented) }
             Section("記録（あとから編集できます）") {
-                PhotosPicker(selection: $photos, maxSelectionCount: nil, matching: .images) { Label("写真を追加", systemImage: "photo.on.rectangle") }
+                PhotosPicker(selection: $photos, maxSelectionCount: nil, matching: .images, preferredItemEncoding: .current) { Label("写真を追加", systemImage: "photo.on.rectangle") }
+                PhotoDateSuggestion(photos: photos, visitDate: $visitDate, includeDate: $includeDate)
                 RatingPicker(ratingHalfSteps: $ratingHalfSteps)
                 Picker("価格帯", selection: $priceTier) { Text("未設定").tag(0); ForEach(1...4, id: \.self) { Text(String(repeating: "¥", count: $0)).tag($0) } }
                 Toggle("訪問日を記録", isOn: $includeDate)
@@ -132,6 +137,8 @@ struct RecordEditor: View {
                 TextField("メモ", text: $memo, axis: .vertical)
                     .accessibilityIdentifier("recordMemo")
             }
+            Section("次回の楽しみ") { Toggle("また行きたい", isOn: $wantsToReturn) }
+            NextMealNoteSection(note: $nextMealNote)
             RelatedLinksEditor(links: $relatedLinks)
             Section("食べたメニュー") {
                 ForEach($menuItems) { $item in
@@ -155,6 +162,15 @@ struct RecordEditor: View {
             }
         }
         .navigationTitle("お店を記録")
+        .interactiveDismissDisabled(isSaving)
+        .onAppear {
+            guard !didLoadPlacePreferences else { return }
+            didLoadPlacePreferences = true
+            if let place = places.first(where: { $0.externalPlaceID == candidate.id }) {
+                nextMealNote = place.nextMealNote
+                wantsToReturn = place.wantsToReturn
+            }
+        }
         .disabled(isSaving)
         .overlay { if isSaving { ProgressView("保存中…").padding().background(.regularMaterial).clipShape(RoundedRectangle(cornerRadius: 12)) } }
         .toolbar { ToolbarItem(placement: .confirmationAction) { Button("保存") { Task { await save() } }.disabled(isSaving || hasInvalidRelatedLinks).accessibilityIdentifier("saveRecord") } }
@@ -176,10 +192,22 @@ struct RecordEditor: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        let store = LocalPhotoStore()
+        var staged: [RecordPhoto] = []
         do {
+            try context.save()
             let place = places.first { $0.externalPlaceID == candidate.id } ?? Place(name: candidate.name, address: candidate.address, latitude: candidate.latitude, longitude: candidate.longitude, externalPlaceID: candidate.id, category: candidate.category)
-            if !places.contains(where: { $0.id == place.id }) { context.insert(place) }
             let record = RestaurantRecord(placeID: place.id, status: status)
+            for (index, item) in photos.enumerated() {
+                guard let data = try await item.loadTransferable(type: Data.self) else { throw CocoaError(.fileReadCorruptFile) }
+                let saved = try store.save(data, recordID: record.id, order: index)
+                let photo = RecordPhoto(recordID: record.id, imagePath: saved.imagePath, thumbnailPath: saved.thumbnailPath, order: index)
+                photo.takenAt = PhotoCaptureDate.read(from: data)
+                staged.append(photo)
+            }
+            if !places.contains(where: { $0.id == place.id }) { context.insert(place) }
+            place.wantsToReturn = wantsToReturn
+            if proAccess.isProUnlocked { place.nextMealNote = nextMealNote.trimmingCharacters(in: .whitespacesAndNewlines) }
             record.rating = ratingHalfSteps / 2
             record.ratingHalfSteps = ratingHalfSteps
             record.memo = memo.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -189,18 +217,16 @@ struct RecordEditor: View {
             record.tagIDs = Array(selectedTags)
             InitialReleasePrivacy.apply(to: record)
             context.insert(record)
-            for (index, item) in menuItems.filter({ !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }).enumerated() {
-                context.insert(RecordMenuItem(recordID: record.id, name: item.name, price: yenValue(item.price), order: index))
+            for (index, item) in menuItems.filter({ !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).enumerated() {
+                context.insert(RecordMenuItem(recordID: record.id, name: item.name.trimmingCharacters(in: .whitespacesAndNewlines), price: yenValue(item.price), order: index))
             }
-            let store = LocalPhotoStore()
-            for (index, item) in photos.enumerated() {
-                guard let data = try await item.loadTransferable(type: Data.self) else { throw CocoaError(.fileReadCorruptFile) }
-                let saved = try store.save(data, recordID: record.id, order: index)
-                context.insert(RecordPhoto(recordID: record.id, imagePath: saved.imagePath, thumbnailPath: saved.thumbnailPath, order: index))
-            }
+            staged.forEach(context.insert)
             try context.save()
             dismiss()
         } catch {
+            let stagedPaths = staged.map { ($0.imagePath, $0.thumbnailPath) }
+            context.rollback()
+            stagedPaths.forEach { store.delete(imagePath: $0.0, thumbnailPath: $0.1) }
             errors.show(error, title: "記録を保存できませんでした")
         }
     }
