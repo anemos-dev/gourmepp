@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import ImageIO
+import Photos
 
 /// Normalize width and kana without discarding meaningful dakuten or accents.
 enum SearchText {
@@ -13,6 +14,12 @@ enum SearchText {
 }
 
 enum PhotoCaptureDate {
+    /// The photo library keeps this metadata locally, so this avoids downloading the image just to show a date suggestion.
+    @MainActor
+    static func libraryDate(for identifier: String) -> Date? {
+        PHAsset.fetchAssets(withLocalIdentifiers: [identifier], options: nil).firstObject?.creationDate
+    }
+
     static func read(from data: Data) -> Date? {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]

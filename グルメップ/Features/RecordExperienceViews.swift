@@ -3,21 +3,30 @@ import SwiftData
 import SwiftUI
 
 struct PhotoDateSuggestion: View {
+    private enum SuggestionState: Equatable {
+        case idle
+        case loading
+        case available([Date])
+        case unavailable
+        case timedOut
+    }
+
     let photos: [PhotosPickerItem]
     @Binding var visitDate: Date
     @Binding var includeDate: Bool
-    @State private var dates: [Date] = []
-    @State private var isLoading = false
+    @State private var state: SuggestionState = .idle
+
+    private var photoIdentifiers: [String] {
+        photos.compactMap(\.itemIdentifier)
+    }
 
     var body: some View {
         Group {
             if !photos.isEmpty {
-                if isLoading {
+                switch state {
+                case .idle, .loading:
                     ProgressView("撮影日を確認中…")
-                } else if dates.isEmpty {
-                    Text("撮影日を取得できない写真です。訪問日は手入力できます。")
-                        .font(.caption).foregroundStyle(.secondary)
-                } else {
+                case .available(let dates):
                     ForEach(dates, id: \.self) { date in
                         Button {
                             visitDate = date
@@ -26,23 +35,50 @@ struct PhotoDateSuggestion: View {
                             Label("撮影日を使う：\(date.formatted(date: .abbreviated, time: .omitted))", systemImage: "calendar.badge.clock")
                         }
                     }
+                case .unavailable:
+                    Text("撮影日を取得できない写真です。訪問日は手入力できます。")
+                        .font(.caption).foregroundStyle(.secondary)
+                case .timedOut:
+                    Text("撮影日の確認に時間がかかっています。訪問日は手入力できます。")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
-        .task(id: photos) {
-            dates = []
-            isLoading = true
-            defer { if !Task.isCancelled { isLoading = false } }
-            var found: Set<Date> = []
-            for photo in photos {
-                guard !Task.isCancelled else { return }
-                if let data = try? await photo.loadTransferable(type: Data.self),
-                   let date = PhotoCaptureDate.read(from: data) {
-                    found.insert(Calendar.current.startOfDay(for: date))
-                }
+        .task(id: photoIdentifiers) {
+            guard !photoIdentifiers.isEmpty else {
+                state = photos.isEmpty ? .idle : .unavailable
+                return
             }
-            guard !Task.isCancelled else { return }
-            dates = found.sorted()
+
+            state = .loading
+            let identifiers = photoIdentifiers
+            await withTaskGroup(of: SuggestionState.self) { group in
+                group.addTask {
+                    let dates = await withTaskGroup(of: Date?.self) { dateGroup in
+                        for identifier in identifiers {
+                            dateGroup.addTask {
+                                await MainActor.run {
+                                    PhotoCaptureDate.libraryDate(for: identifier)
+                                }
+                            }
+                        }
+                        var dates = Set<Date>()
+                        for await date in dateGroup {
+                            if let date { dates.insert(Calendar.current.startOfDay(for: date)) }
+                        }
+                        return dates.sorted()
+                    }
+                    return dates.isEmpty ? .unavailable : .available(dates)
+                }
+                group.addTask {
+                    try? await Task.sleep(for: .seconds(2))
+                    return .timedOut
+                }
+
+                guard let result = await group.next(), !Task.isCancelled else { return }
+                group.cancelAll()
+                state = result
+            }
         }
     }
 }
