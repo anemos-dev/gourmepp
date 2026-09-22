@@ -21,10 +21,12 @@ struct ProPaywallView: View {
                 }
 
                 VStack(spacing: 0) {
+                    ProFeatureRow(icon: "fork.knife", title: "次に食べたい", detail: "お店ごとに次回食べたいメニューを保存し、再訪時に確認")
+                    Divider().padding(.leading, 52)
                     ProFeatureRow(
                         icon: "chart.bar.xaxis",
-                        title: "年間ごはんレポート",
-                        detail: "訪問数や高評価店、よく行ったエリアを自動集計"
+                        title: "年間・月間ごはんレポート",
+                        detail: "訪問数や高評価店、月ごとの新規開拓を自動集計"
                     )
                     Divider().padding(.leading, 52)
                     ProFeatureRow(
