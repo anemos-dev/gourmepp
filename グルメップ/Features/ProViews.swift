@@ -413,8 +413,7 @@ struct AnnualFoodReport {
 
         let areas = visits.compactMap { visit -> String? in
             guard let place = placeByID[visit.placeID] else { return nil }
-            let area = place.area.isEmpty ? Place.area(from: place.address) : place.area
-            return area.isEmpty ? nil : area
+            return Place.municipality(from: place.address)
         }
         topArea = Self.mostFrequent(areas)
 
