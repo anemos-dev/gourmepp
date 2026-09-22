@@ -287,10 +287,6 @@ private struct HomeListCard: View {
                 }
                 .font(.subheadline.weight(.medium))
 
-                if place?.wantsToReturn == true {
-                    Label("また行きたい", systemImage: "arrow.uturn.backward.circle.fill")
-                        .font(.caption).foregroundStyle(Color("BrandOrange"))
-                }
                 Text([place?.category, place?.area].compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "・"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -299,10 +295,17 @@ private struct HomeListCard: View {
 
             Spacer(minLength: 4)
 
-            if record.isFavorite {
-                Image(systemName: "heart.fill")
-                    .foregroundStyle(Color("BrandOrange"))
-                    .accessibilityHidden(true)
+            HStack(spacing: 8) {
+                if place?.wantsToReturn == true {
+                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                        .foregroundStyle(Color("BrandOrange"))
+                        .accessibilityHidden(true)
+                }
+                if record.isFavorite {
+                    Image(systemName: "heart.fill")
+                        .foregroundStyle(Color("BrandOrange"))
+                        .accessibilityHidden(true)
+                }
             }
         }
         .padding(8)
@@ -398,11 +401,19 @@ private struct PinterestRecordTile: View {
                                     .background(.black.opacity(0.42), in: Capsule())
                             }
                             Spacer()
-                            if record.isFavorite {
-                                Image(systemName: "heart.fill")
-                                    .foregroundStyle(Color("BrandOrange"))
-                                    .padding(8)
-                                    .background(.black.opacity(0.42), in: Circle())
+                            HStack(spacing: 6) {
+                                if place?.wantsToReturn == true {
+                                    Image(systemName: "arrow.uturn.backward.circle.fill")
+                                        .foregroundStyle(Color("BrandOrange"))
+                                        .padding(8)
+                                        .background(.black.opacity(0.42), in: Circle())
+                                }
+                                if record.isFavorite {
+                                    Image(systemName: "heart.fill")
+                                        .foregroundStyle(Color("BrandOrange"))
+                                        .padding(8)
+                                        .background(.black.opacity(0.42), in: Circle())
+                                }
                             }
                         }
                         Spacer()
@@ -412,9 +423,6 @@ private struct PinterestRecordTile: View {
                         Text(place?.name ?? "店舗")
                             .font(.subheadline.weight(.semibold))
                             .lineLimit(2)
-                        if place?.wantsToReturn == true {
-                            Label("また行きたい", systemImage: "arrow.uturn.backward.circle.fill").font(.caption2)
-                        }
                         if showsCardDetails && record.displayRating > 0 { Text("★ \(record.ratingText)").font(.caption.weight(.medium)) }
                     }
                     .foregroundStyle(.white)
