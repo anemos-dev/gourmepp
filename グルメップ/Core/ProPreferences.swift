@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftUI
+import UIKit
 
 struct SavedHomeFilter: Codable, Identifiable, Equatable {
     var id = UUID()
@@ -34,6 +35,30 @@ enum ProAccentTheme: String, CaseIterable, Identifiable {
         case .green: Color(red: 0.20, green: 0.46, blue: 0.27)
         case .blue: Color(red: 0.15, green: 0.32, blue: 0.56)
         }
+    }
+
+    var highlightColor: Color {
+        switch self {
+        case .orange: Color("BrandSun")
+        case .red: Color(red: 0.94, green: 0.36, blue: 0.25)
+        case .green: Color(red: 0.36, green: 0.67, blue: 0.40)
+        case .blue: Color(red: 0.30, green: 0.53, blue: 0.82)
+        }
+    }
+
+    var canvasColor: Color {
+        Color(uiColor: UIColor { traits in
+            switch (self, traits.userInterfaceStyle) {
+            case (.orange, .dark): UIColor(red: 0.13, green: 0.08, blue: 0.03, alpha: 1)
+            case (.red, .dark): UIColor(red: 0.14, green: 0.05, blue: 0.04, alpha: 1)
+            case (.green, .dark): UIColor(red: 0.04, green: 0.12, blue: 0.06, alpha: 1)
+            case (.blue, .dark): UIColor(red: 0.03, green: 0.08, blue: 0.15, alpha: 1)
+            case (.orange, _): UIColor(red: 1.00, green: 0.95, blue: 0.86, alpha: 1)
+            case (.red, _): UIColor(red: 1.00, green: 0.92, blue: 0.90, alpha: 1)
+            case (.green, _): UIColor(red: 0.91, green: 0.97, blue: 0.92, alpha: 1)
+            case (.blue, _): UIColor(red: 0.90, green: 0.95, blue: 1.00, alpha: 1)
+            }
+        })
     }
 }
 
@@ -81,6 +106,8 @@ final class ProPreferences {
     }
 
     var accentColor: Color { accentTheme.color }
+    var highlightColor: Color { accentTheme.highlightColor }
+    var canvasColor: Color { accentTheme.canvasColor }
 
     func save(_ filter: SavedHomeFilter) {
         savedFilters.removeAll { $0.name.localizedCaseInsensitiveCompare(filter.name) == .orderedSame }

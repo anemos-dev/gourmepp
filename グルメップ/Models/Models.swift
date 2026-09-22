@@ -7,6 +7,33 @@ enum RecordStatus: String, CaseIterable, Codable, Identifiable {
     var title: String { switch self { case .visited: "行った"; case .wantToGo: "行きたい" } }
 }
 
+enum PriceTier: Int, CaseIterable, Identifiable {
+    case upTo999 = 1
+    case from1000To2999
+    case from3000To4999
+    case from5000To9999
+    case from10000To19999
+    case from20000
+
+    var id: Int { rawValue }
+
+    var label: String {
+        switch self {
+        case .upTo999: "〜¥999"
+        case .from1000To2999: "¥1,000〜¥2,999"
+        case .from3000To4999: "¥3,000〜¥4,999"
+        case .from5000To9999: "¥5,000〜¥9,999"
+        case .from10000To19999: "¥10,000〜¥19,999"
+        case .from20000: "¥20,000〜"
+        }
+    }
+
+    static func label(for rawValue: Int?) -> String? {
+        guard let rawValue else { return nil }
+        return Self(rawValue: rawValue)?.label
+    }
+}
+
 enum Visibility: String, CaseIterable, Codable, Identifiable {
     case `private`, link, `public`
     var id: String { rawValue }
@@ -57,6 +84,23 @@ enum InitialReleasePrivacy {
         let prefectures = ["東京都", "北海道", "大阪府", "京都府", "神奈川県", "埼玉県", "千葉県", "愛知県", "福岡県", "兵庫県", "静岡県"]
         if let prefecture = prefectures.first(where: { trimmed.hasPrefix($0) }) { return prefecture }
         return trimmed.components(separatedBy: .whitespaces).first ?? ""
+    }
+
+    /// 市区町村より細かい住所をまとめ、年間レポートのエリア集計に使います。
+    static func municipality(from address: String) -> String? {
+        let trimmed = address.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let cityWithWardPattern = "(?:都|道|府|県)([^0-9\\s]+?市(?:[^0-9\\s]+?区)?)"
+        if let range = trimmed.range(of: cityWithWardPattern, options: .regularExpression) {
+            return String(trimmed[range].dropFirst())
+        }
+
+        let wardPattern = "(?:都|道|府|県)([^0-9\\s]+?区)"
+        if let range = trimmed.range(of: wardPattern, options: .regularExpression) {
+            return String(trimmed[range].dropFirst())
+        }
+        return nil
     }
 }
 

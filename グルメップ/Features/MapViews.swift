@@ -45,49 +45,13 @@ struct MapScreen: View {
         guard proAccess.isProUnlocked else { return filteredRecords }
         switch proMode {
         case .pins: return filteredRecords
-        case .density: return records.filter { !$0.isDeleted && $0.status == .visited }
-        case .nearbyWishlist: return nearbyWishlistRecords
+        case .density: return filteredRecords.filter { $0.status == .visited }
+        case .nearbyWishlist: return nearbyWishlistRecords.filter { filter == nil || $0.status == filter }
         }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            if proAccess.isProUnlocked {
-                Picker("地図の表示", selection: $proMode) {
-                    ForEach(ProMapMode.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 10)
-            }
-            if proMode == .pins || !proAccess.isProUnlocked {
-                Picker("絞り込み", selection: $filter) {
-                    Text("すべて").tag(RecordStatus?.none)
-                    ForEach(RecordStatus.allCases) { Text($0.title).tag(Optional($0)) }
-                }
-                .pickerStyle(.segmented)
-                .padding()
-            } else if proMode == .density {
-                HStack {
-                    Label("訪問済みの記録", systemImage: "chart.bar.fill")
-                    Spacer()
-                    Text("\(displayedRecords.count)件")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-            } else if locationService.currentLocation != nil {
-                HStack {
-                    Label("5km以内", systemImage: "location.fill")
-                    Spacer()
-                    Text("\(nearbyWishlistRecords.count)件")
-                }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal)
-                .padding(.vertical, 12)
-            }
             RecordsMap(
                 records: displayedRecords,
                 places: places,
@@ -129,7 +93,28 @@ struct MapScreen: View {
             }
         }
         .navigationTitle("マップ")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Section("状態") {
+                        Picker("状態", selection: $filter) {
+                            Text("すべて").tag(RecordStatus?.none)
+                            ForEach(RecordStatus.allCases) { Text($0.title).tag(Optional($0)) }
+                        }
+                    }
+                    if proAccess.isProUnlocked {
+                        Section("表示") {
+                            Picker("地図の表示", selection: $proMode) {
+                                ForEach(ProMapMode.allCases) { Text($0.title).tag($0) }
+                            }
+                        }
+                    }
+                } label: {
+                    Image(systemName: "line.3.horizontal.decrease.circle")
+                }
+                .accessibilityLabel("地図を絞り込む")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button { locationService.request() } label: {
                     Image(systemName: locationService.currentLocation == nil ? "location" : "location.fill")
