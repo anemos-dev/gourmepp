@@ -138,6 +138,8 @@ struct ReleaseSettingsView: View {
     @State private var showOfferCodeRedemption = false
     @State private var exportText: String?
     @State private var showCSVShare = false
+    @AppStorage("backup.lastSuccessfulSnapshot") private var backupSnapshotData = Data()
+    @State private var preparedBackupSnapshot: BackupSnapshot?
     @State private var backupDocument: GourmeppBackupDocument?
     @State private var showBackupExporter = false
     @State private var showBackupImporter = false
@@ -173,6 +175,12 @@ struct ReleaseSettingsView: View {
             #endif
 
             Section("グルメップ Pro") {
+                NavigationLink {
+                    if proAccess.isProUnlocked { MonthlyFoodReportView() }
+                    else { ProPaywallView() }
+                } label: {
+                    Label("月間ごはんレポート", systemImage: "calendar")
+                }
                 if proAccess.isProUnlocked {
                     NavigationLink {
                         AnnualFoodReportView()
@@ -263,6 +271,7 @@ struct ReleaseSettingsView: View {
             }
 
             Section("データ") {
+                BackupStatusView()
                 Button {
                     exportText = LocalExportImportService().csv(
                         records: records.filter { !$0.isDeleted },
@@ -354,7 +363,15 @@ struct ReleaseSettingsView: View {
             contentType: .gourmeppBackup,
             defaultFilename: "グルメップ-\(Date.now.formatted(.iso8601.year().month().day()))"
         ) { result in
-            if case .failure(let error) = result { errors.show(error, title: "バックアップを保存できませんでした") }
+            switch result {
+            case .success:
+                if let snapshot = preparedBackupSnapshot, let data = try? JSONEncoder().encode(snapshot) {
+                    backupSnapshotData = data
+                }
+            case .failure(let error):
+                errors.show(error, title: "バックアップを保存できませんでした")
+            }
+            preparedBackupSnapshot = nil
         }
         .fileImporter(
             isPresented: $showBackupImporter,
@@ -479,7 +496,14 @@ struct ReleaseSettingsView: View {
     }
 
     private func prepareBackup() {
+        preparedBackupSnapshot = nil
         do {
+            try context.save()
+            preparedBackupSnapshot = try BackupSnapshot.capture(metadata: BackupService().encode(
+                places: places, records: records, photos: photos, menuItems: menuItems,
+                tags: tags, collections: collections, collectionEntries: collectionEntries,
+                includePhotoData: false
+            ))
             backupDocument = GourmeppBackupDocument(data: try BackupService().encode(
                 places: places, records: records, photos: photos, menuItems: menuItems,
                 tags: tags, collections: collections, collectionEntries: collectionEntries
@@ -574,6 +598,7 @@ struct ReleaseSettingsView: View {
                 currentCollections: collections, currentEntries: collectionEntries
             )
             self.pendingBackup = nil
+            backupSnapshotData = Data()
             errors.show("バックアップを復元しました。")
         } catch {
             errors.show(error, title: "復元できませんでした")
@@ -581,6 +606,7 @@ struct ReleaseSettingsView: View {
     }
 
     private func deleteAllData() {
+        backupSnapshotData = Data()
         photos.forEach { LocalPhotoStore().delete(photo: $0); context.delete($0) }
         collectionEntries.forEach(context.delete)
         menuItems.forEach(context.delete)

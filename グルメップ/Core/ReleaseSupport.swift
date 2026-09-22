@@ -129,6 +129,8 @@ struct AppBackup: Codable {
 }
 
 struct BackupPlace: Codable {
+    var nextMealNote: String? = nil
+    var wantsToReturn: Bool? = nil
     var id: UUID
     var externalPlaceID: String?
     var name: String
@@ -218,7 +220,8 @@ struct BackupService {
         menuItems: [RecordMenuItem],
         tags: [Tag],
         collections: [Collection],
-        collectionEntries: [CollectionEntry]
+        collectionEntries: [CollectionEntry],
+        includePhotoData: Bool = true
     ) throws -> Data {
         let store = LocalPhotoStore()
         let coverRecordIDs = Dictionary(uniqueKeysWithValues: collections.map { collection in
@@ -230,6 +233,7 @@ struct BackupService {
         let backup = AppBackup(
             places: places.map {
                 BackupPlace(
+                    nextMealNote: $0.nextMealNote, wantsToReturn: $0.wantsToReturn,
                     id: $0.id, externalPlaceID: $0.externalPlaceID, name: $0.name,
                     address: $0.address, area: $0.area, latitude: $0.latitude,
                     longitude: $0.longitude, phoneNumber: $0.phoneNumber,
@@ -253,7 +257,7 @@ struct BackupService {
                 )
             },
             photos: try photos.map {
-                guard let data = store.data(at: $0.imagePath) else { throw BackupError.missingPhoto }
+                guard let data = includePhotoData ? store.data(at: $0.imagePath) : $0.imagePath.data(using: .utf8) else { throw BackupError.missingPhoto }
                 return BackupPhoto(
                     id: $0.id, recordID: $0.recordID, order: $0.order,
                     takenAt: $0.takenAt, latitude: $0.latitude, longitude: $0.longitude,
@@ -333,6 +337,8 @@ struct BackupService {
         for value in backup.places {
             let item = Place(name: value.name)
             item.id = value.id
+            item.nextMealNote = value.nextMealNote ?? ""
+            item.wantsToReturn = value.wantsToReturn ?? false
             item.externalPlaceID = value.externalPlaceID
             item.address = value.address
             item.area = value.area

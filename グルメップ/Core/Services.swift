@@ -12,6 +12,10 @@ final class LocalPhotoStore: PhotoStore {
         let folder = root.appendingPathComponent(recordID.uuidString, isDirectory: true); try fm.createDirectory(at: folder, withIntermediateDirectories: true)
         let imageName = "\(order)-\(UUID().uuidString).jpg"; let imageURL = folder.appendingPathComponent(imageName); try data.write(to: imageURL, options: .atomic)
         let thumbName = "thumb-\(imageName)"; let thumbURL = folder.appendingPathComponent(thumbName)
+        var completed = false
+        defer {
+            if !completed { try? fm.removeItem(at: imageURL); try? fm.removeItem(at: thumbURL) }
+        }
         guard let source = UIImage(data: data) else { throw CocoaError(.fileReadCorruptFile) }
         let normalized = source.preparingForDisplay() ?? source
         let quality = PhotoQuality(rawValue: UserDefaults.standard.string(forKey: "photoQuality") ?? "standard") ?? .standard
@@ -31,6 +35,7 @@ final class LocalPhotoStore: PhotoStore {
         }
         guard let thumbData = thumb.jpegData(compressionQuality: 0.72) else { throw CocoaError(.fileWriteUnknown) }
         try thumbData.write(to: thumbURL, options: .atomic)
+        completed = true
         return (relative(imageURL), relative(thumbURL))
     }
     func image(at path: String) -> UIImage? { UIImage(contentsOfFile: root.deletingLastPathComponent().appendingPathComponent(path).path) }
@@ -47,9 +52,12 @@ final class LocalPhotoStore: PhotoStore {
     }
     func delete(recordID: UUID) { try? fm.removeItem(at: root.appendingPathComponent(recordID.uuidString)) }
     func delete(photo: RecordPhoto) {
+        delete(imagePath: photo.imagePath, thumbnailPath: photo.thumbnailPath)
+    }
+    func delete(imagePath: String, thumbnailPath: String) {
         let applicationSupport = root.deletingLastPathComponent()
-        try? fm.removeItem(at: applicationSupport.appendingPathComponent(photo.imagePath))
-        try? fm.removeItem(at: applicationSupport.appendingPathComponent(photo.thumbnailPath))
+        try? fm.removeItem(at: applicationSupport.appendingPathComponent(imagePath))
+        try? fm.removeItem(at: applicationSupport.appendingPathComponent(thumbnailPath))
     }
     private func relative(_ url: URL) -> String { "RecordPhotos/" + url.pathComponents.suffix(2).joined(separator: "/") }
 }

@@ -197,6 +197,10 @@ struct DuplicatePlaceMergeView: View {
     }
 
     private func merge(_ duplicate: Place) {
+        place.wantsToReturn = place.wantsToReturn || duplicate.wantsToReturn
+        if !duplicate.nextMealNote.isEmpty && duplicate.nextMealNote != place.nextMealNote {
+            place.nextMealNote = [place.nextMealNote, duplicate.nextMealNote].filter { !$0.isEmpty }.joined(separator: "\n")
+        }
         records.filter { $0.placeID == duplicate.id }.forEach {
             $0.placeID = place.id
             $0.updatedAt = .now
