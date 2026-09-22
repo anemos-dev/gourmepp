@@ -52,8 +52,8 @@ struct AdvancedHomeFilterView: View {
                 }
                 Picker("価格帯", selection: $selectedPrice) {
                     Text("指定なし").tag(Int?.none)
-                    ForEach(1...4, id: \.self) { price in
-                        Text(String(repeating: "¥", count: price)).tag(Optional(price))
+                    ForEach(PriceTier.allCases) { tier in
+                        Text(tier.label).tag(Optional(tier.rawValue))
                     }
                 }
                 if !areas.isEmpty {
@@ -143,7 +143,7 @@ struct AdvancedHomeFilterView: View {
         var parts: [String] = []
         if let raw = filter.statusRaw, let status = HomeStatusFilter(rawValue: raw) { parts.append(status.title) }
         if filter.minimumRating > 0 { parts.append("★\(String(format: "%.1f", filter.minimumRating))以上") }
-        if let price = filter.price { parts.append(String(repeating: "¥", count: price)) }
+        if let priceLabel = PriceTier.label(for: filter.price) { parts.append(priceLabel) }
         if !filter.area.isEmpty { parts.append(filter.area) }
         if filter.favoritesOnly { parts.append("お気に入り") }
         if filter.hasPhotosOnly { parts.append("写真あり") }

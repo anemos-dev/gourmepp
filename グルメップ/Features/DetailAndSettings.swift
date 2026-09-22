@@ -43,7 +43,7 @@ struct PlaceDetailView: View {
                     Section("自分の記録") {
                         LabeledContent("状態", value: record.status.title)
                         if record.displayRating > 0 { LabeledContent("評価", value: "★ \(record.ratingText)") }
-                        if let price = record.price { LabeledContent("価格帯", value: String(repeating: "¥", count: price)) }
+                        if let priceLabel = PriceTier.label(for: record.price) { LabeledContent("価格帯", value: priceLabel) }
                         if let visitDate = record.visitDate { LabeledContent("訪問日", value: visitDate.formatted(date: .long, time: .omitted)) }
                         if !record.memo.isEmpty { Text(record.memo) }
                         let recordTags = tags.filter { record.tagIDs.contains($0.id) }
@@ -257,7 +257,9 @@ struct RecordEditView: View {
                 RatingPicker(ratingHalfSteps: $ratingHalfSteps)
                 Picker("価格帯", selection: $priceTier) {
                     Text("未設定").tag(0)
-                    ForEach(1...4, id: \.self) { Text(String(repeating: "¥", count: $0)).tag($0) }
+                    ForEach(PriceTier.allCases) { tier in
+                        Text(tier.label).tag(tier.rawValue)
+                    }
                 }
                 Toggle("訪問日を記録", isOn: $includeDate)
                 if includeDate { DatePicker("訪問日", selection: $visitDate, displayedComponents: .date) }

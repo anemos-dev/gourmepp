@@ -33,7 +33,7 @@ struct AppView: View {
             NavigationStack { ReleaseSettingsView() }.tabItem { Label("設定", systemImage: "gearshape") }.tag(AppTab.settings)
         }
         .tint(proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange"))
-        .toolbarBackground(Color("PinterestCanvas"), for: .tabBar)
+        .toolbarBackground(proAccess.isProUnlocked ? proPreferences.canvasColor : Color("PinterestCanvas"), for: .tabBar)
         .fullScreenCover(isPresented: Binding(
             get: { !hasCompletedOnboarding || !hasAcceptedReleaseLegal },
             set: { _ in }
@@ -57,6 +57,9 @@ struct HomeView: View {
     @State private var statusFilter: HomeStatusFilter = .all; @State private var query = ""; @State private var selectedTags: Set<UUID> = []; @State private var layout: HomeLayout = .grid; @State private var favoritesOnly = false; @State private var selectedPrice: Int?; @State private var selectedArea = ""; @State private var sort: RecordSort = .updated; @State private var minimumRating = 0.0; @State private var hasPhotosOnly = false; @State private var didApplyHomePreferences = false
     @State private var returnsOnly = false
     private var areas: [String] { Array(Set(places.map { $0.area.isEmpty ? Place.area(from: $0.address) : $0.area }.filter { !$0.isEmpty })).sorted() }
+    private var accentColor: Color { proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange") }
+    private var highlightColor: Color { proAccess.isProUnlocked ? proPreferences.highlightColor : Color("BrandSun") }
+    private var canvasColor: Color { proAccess.isProUnlocked ? proPreferences.canvasColor : Color("PinterestCanvas") }
     private var displayed: [RestaurantRecord] {
         let recordsWithPhotos = Set(photos.map(\.recordID))
         let base = records.filtered(query: query, tags: selectedTags, places: places).filter { record in
@@ -84,7 +87,7 @@ struct HomeView: View {
             filterChips
             content
         }
-        .background(Color("PinterestCanvas").ignoresSafeArea())
+        .background(canvasColor.ignoresSafeArea())
         .searchable(text: $query, prompt: "店名・エリア・メモを検索")
         .onAppear(perform: applyHomePreferencesIfNeeded)
         .toolbar {
@@ -103,8 +106,8 @@ struct HomeView: View {
                     }
                     Menu("価格帯") {
                         Button("すべて") { selectedPrice = nil }
-                        ForEach(1...4, id: \.self) { price in
-                            Button(String(repeating: "¥", count: price)) { selectedPrice = price }
+                        ForEach(PriceTier.allCases) { tier in
+                            Button(tier.label) { selectedPrice = tier.rawValue }
                         }
                     }
                     if !areas.isEmpty {
@@ -146,7 +149,7 @@ struct HomeView: View {
                         }
                     }
                 } label: {
-                    Image(systemName: layout.icon).foregroundStyle(Color("BrandOrange"))
+                    Image(systemName: layout.icon).foregroundStyle(accentColor)
                 }
             }
         }
@@ -169,7 +172,7 @@ struct HomeView: View {
                     .font(.subheadline.weight(.medium))
                     .buttonStyle(.bordered)
                     .buttonBorderShape(.capsule)
-                    .tint(selectedTags.contains(tag.id) ? proPreferences.accentColor : Color.secondary)
+                    .tint(selectedTags.contains(tag.id) ? accentColor : Color.secondary)
                 }
             }
             .padding(.horizontal)
@@ -195,7 +198,9 @@ struct HomeView: View {
                     places: places,
                     photos: photos,
                     columnCount: proAccess.isProUnlocked ? proPreferences.gridColumns : 2,
-                    showsCardDetails: !proAccess.isProUnlocked || proPreferences.showsCardDetails
+                    showsCardDetails: !proAccess.isProUnlocked || proPreferences.showsCardDetails,
+                    accentColor: accentColor,
+                    highlightColor: highlightColor
                 )
             case .list:
                 List(displayed) { record in
@@ -205,7 +210,9 @@ struct HomeView: View {
                         HomeListCard(
                             record: record,
                             place: places.first { $0.id == record.placeID },
-                            photo: primaryPhoto(for: record)
+                            photo: primaryPhoto(for: record),
+                            accentColor: accentColor,
+                            highlightColor: highlightColor
                         )
                     }
                     .buttonStyle(.plain)
@@ -261,6 +268,8 @@ private struct HomeListCard: View {
     let record: RestaurantRecord
     let place: Place?
     let photo: RecordPhoto?
+    let accentColor: Color
+    let highlightColor: Color
 
     var body: some View {
         HStack(spacing: 12) {
@@ -277,7 +286,7 @@ private struct HomeListCard: View {
                 HStack(spacing: 8) {
                     if record.displayRating > 0 {
                         Label(record.ratingText, systemImage: "star.fill")
-                            .foregroundStyle(Color("BrandOrange"))
+                            .foregroundStyle(accentColor)
                     } else {
                         Text("未評価")
                             .foregroundStyle(.secondary)
@@ -298,12 +307,12 @@ private struct HomeListCard: View {
             HStack(spacing: 8) {
                 if place?.wantsToReturn == true {
                     Image(systemName: "arrow.uturn.backward.circle.fill")
-                        .foregroundStyle(Color("BrandOrange"))
+                        .foregroundStyle(accentColor)
                         .accessibilityHidden(true)
                 }
                 if record.isFavorite {
                     Image(systemName: "heart.fill")
-                        .foregroundStyle(Color("BrandOrange"))
+                        .foregroundStyle(accentColor)
                         .accessibilityHidden(true)
                 }
             }
@@ -312,7 +321,7 @@ private struct HomeListCard: View {
         .background(.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color("BrandOrange"), lineWidth: 1.5)
+                .stroke(accentColor, lineWidth: 1.5)
         }
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -326,7 +335,7 @@ private struct HomeListCard: View {
                 .scaledToFill()
         } else {
             LinearGradient(
-                colors: [Color("BrandSun"), Color("BrandOrange")],
+                colors: [highlightColor, accentColor],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -349,6 +358,8 @@ private struct PinterestMasonryGrid: View {
     let photos: [RecordPhoto]
     let columnCount: Int
     let showsCardDetails: Bool
+    let accentColor: Color
+    let highlightColor: Color
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(), spacing: 12), count: columnCount)
     }
@@ -360,7 +371,9 @@ private struct PinterestMasonryGrid: View {
                         record: record,
                         place: places.first { $0.id == record.placeID },
                         photo: photos.filter { $0.recordID == record.id }.min { $0.order < $1.order },
-                        showsCardDetails: showsCardDetails
+                        showsCardDetails: showsCardDetails,
+                        accentColor: accentColor,
+                        highlightColor: highlightColor
                     )
                 }
             }
@@ -375,10 +388,10 @@ private struct PinterestRecordTile: View {
     let place: Place?
     let photo: RecordPhoto?
     let showsCardDetails: Bool
-    private let fallbackColors: [Color] = [Color("BrandOrange"), .orange, .brown, .teal, .indigo]
+    let accentColor: Color
+    let highlightColor: Color
     private var fallbackColor: Color {
-        let index = record.id.uuidString.utf8.reduce(0) { ($0 + Int($1)) % fallbackColors.count }
-        return fallbackColors[index]
+        accentColor.opacity(record.id.uuidString.utf8.reduce(0) { ($0 + Int($1)) % 3 } == 0 ? 1 : 0.78)
     }
     var body: some View {
         NavigationLink {
@@ -404,13 +417,13 @@ private struct PinterestRecordTile: View {
                             HStack(spacing: 6) {
                                 if place?.wantsToReturn == true {
                                     Image(systemName: "arrow.uturn.backward.circle.fill")
-                                        .foregroundStyle(Color("BrandOrange"))
+                                        .foregroundStyle(accentColor)
                                         .padding(8)
                                         .background(.black.opacity(0.42), in: Circle())
                                 }
                                 if record.isFavorite {
                                     Image(systemName: "heart.fill")
-                                        .foregroundStyle(Color("BrandOrange"))
+                                        .foregroundStyle(accentColor)
                                         .padding(8)
                                         .background(.black.opacity(0.42), in: Circle())
                                 }
@@ -442,7 +455,7 @@ private struct PinterestRecordTile: View {
         if let photo, let uiImage = LocalPhotoStore().image(at: photo.thumbnailPath) {
             Image(uiImage: uiImage).resizable().scaledToFill()
         } else {
-            LinearGradient(colors: [Color("BrandSun"), fallbackColor], startPoint: .topLeading, endPoint: .bottomTrailing)
+            LinearGradient(colors: [highlightColor, fallbackColor], startPoint: .topLeading, endPoint: .bottomTrailing)
                 .overlay { Image(systemName: "fork.knife").font(.largeTitle).foregroundStyle(.white.opacity(0.75)) }
         }
     }

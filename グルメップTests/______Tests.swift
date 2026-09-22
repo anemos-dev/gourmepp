@@ -40,6 +40,17 @@ struct グルメップTests {
         #expect(yenValue("") == nil)
     }
 
+    @Test func priceTierLabelsCoverAllStoredValues() {
+        #expect(PriceTier.allCases.map(\.rawValue) == [1, 2, 3, 4, 5, 6])
+        #expect(PriceTier.allCases.map(\.label) == [
+            "〜¥999", "¥1,000〜¥2,999", "¥3,000〜¥4,999",
+            "¥5,000〜¥9,999", "¥10,000〜¥19,999", "¥20,000〜"
+        ])
+        #expect(PriceTier.label(for: 1) == "〜¥999")
+        #expect(PriceTier.label(for: 6) == "¥20,000〜")
+        #expect(PriceTier.label(for: nil) == nil)
+    }
+
     @Test @MainActor func backupRoundTripPreservesCoreData() throws {
         let place = Place(name: "復元テスト店", address: "東京都千代田区")
         place.phoneNumber = "03-1234-5678"
@@ -156,6 +167,12 @@ struct グルメップTests {
         #expect(Place.area(from: "大阪府大阪市北区") == "大阪府")
     }
 
+    @Test func placeMunicipalityParsesCityAndWard() {
+        #expect(Place.municipality(from: "東京都新宿区西新宿2-8-1") == "新宿区")
+        #expect(Place.municipality(from: "大阪府大阪市北区梅田3-1-1") == "大阪市北区")
+        #expect(Place.municipality(from: "神奈川県横浜市中区山下町1-1") == "横浜市中区")
+    }
+
     @Test func shareCardFreeAndProOptionsStaySeparated() {
         #expect(ShareCardTemplate.simple.requiresPro == false)
         #expect(ShareCardTemplate.editorial.requiresPro)
@@ -218,7 +235,7 @@ struct グルメップTests {
         #expect(report.monthlyCounts[2] == 2)
         #expect(report.monthlyCounts[7] == 1)
         #expect(report.busiestMonth == 3)
-        #expect(report.topArea == .init(name: "東京都", count: 2))
+        #expect(report.topArea == .init(name: "新宿区", count: 2))
         #expect(report.topTag == .init(name: "ランチ", count: 2))
         #expect(abs((report.averageRating ?? 0) - (13.0 / 3.0)) < 0.001)
         #expect(report.topRatedPlaces.first?.name == "大阪ごはん")
@@ -241,7 +258,7 @@ struct グルメップTests {
             statusRaw: HomeStatusFilter.visited.rawValue,
             tagIDs: [],
             favoritesOnly: false,
-            price: nil,
+            price: 6,
             area: "東京都",
             minimumRating: 4.0,
             hasPhotosOnly: true
@@ -253,6 +270,7 @@ struct グルメップTests {
         #expect(restored.showsCardDetails == false)
         #expect(restored.defaultHomeLayoutRaw == HomeLayout.list.rawValue)
         #expect(restored.savedFilters.first?.name == "高評価の写真あり")
+        #expect(restored.savedFilters.first?.price == 6)
         #expect(restored.savedFilters.first?.minimumRating == 4.0)
         #expect(restored.savedFilters.first?.hasPhotosOnly == true)
 
