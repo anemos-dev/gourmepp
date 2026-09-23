@@ -95,7 +95,11 @@ struct RecordStartView: View {
     var body: some View { List { Section("お店を探す") { HStack { TextField("店名・住所から検索", text: $query).onSubmit { Task { await runSearch() } }; if isLoading { ProgressView() } }; Button { Task { await runSearch() } } label: { Label("検索する", systemImage: "magnifyingglass") }; Button { locationService.request() } label: { Label("現在地を使う", systemImage: "location") }.accessibilityIdentifier("useCurrentLocation"); if locationService.currentLocation != nil { Label("現在地付近を検索します", systemImage: "location.fill").font(.caption).foregroundStyle(.secondary) }; Button { showManual = true } label: { Label("店舗情報を手入力", systemImage: "square.and.pencil") }.accessibilityIdentifier("enterPlaceManually") }
             if let searchMessage { ContentUnavailableView(searchMessage, systemImage: "magnifyingglass", description: Text("店名やエリアを変えて、もう一度お試しください。")) }
             if !results.isEmpty { Section("検索結果（\(results.count)件）") { ForEach(results) { candidate in NavigationLink { RecordEditor(candidate: candidate) } label: { VStack(alignment: .leading, spacing: 3) { Text(candidate.name); Text(candidate.address).font(.caption).foregroundStyle(.secondary).lineLimit(2) } } } } }
-        }.navigationTitle("記録する").sheet(isPresented: $showManual) { NavigationStack { ManualPlaceView() } } }
+        }
+        .navigationTitle("記録する")
+        .themeScreenBackground()
+        .sheet(isPresented: $showManual) { NavigationStack { ManualPlaceView() } }
+    }
     private func runSearch() async {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return }
@@ -113,7 +117,7 @@ struct RecordStartView: View {
     }
 }
 
-struct ManualPlaceView: View { @Environment(\.dismiss) private var dismiss; @State private var name = ""; @State private var address = ""; var body: some View { Form { TextField("店名（必須）", text: $name).accessibilityIdentifier("manualPlaceName"); TextField("住所", text: $address).accessibilityIdentifier("manualPlaceAddress"); NavigationLink("このお店を記録") { RecordEditor(candidate: PlaceCandidate(id: UUID().uuidString, name: name, address: address, latitude: 0, longitude: 0, category: "")) }.disabled(name.isEmpty).accessibilityIdentifier("recordManualPlace") }.navigationTitle("店舗を手入力").toolbar { ToolbarItem(placement: .cancellationAction) { Button("閉じる") { dismiss() } } } } }
+struct ManualPlaceView: View { @Environment(\.dismiss) private var dismiss; @State private var name = ""; @State private var address = ""; var body: some View { Form { TextField("店名（必須）", text: $name).accessibilityIdentifier("manualPlaceName"); TextField("住所", text: $address).accessibilityIdentifier("manualPlaceAddress"); NavigationLink("このお店を記録") { RecordEditor(candidate: PlaceCandidate(id: UUID().uuidString, name: name, address: address, latitude: 0, longitude: 0, category: "")) }.disabled(name.isEmpty).accessibilityIdentifier("recordManualPlace") }.navigationTitle("店舗を手入力").themeScreenBackground().toolbar { ToolbarItem(placement: .cancellationAction) { Button("閉じる") { dismiss() } } } } }
 
 struct RecordEditor: View {
     @Environment(ProAccessController.self) private var proAccess
@@ -167,6 +171,7 @@ struct RecordEditor: View {
             }
         }
         .navigationTitle("お店を記録")
+        .themeScreenBackground()
         .interactiveDismissDisabled(isSaving)
         .onAppear {
             guard !didLoadPlacePreferences else { return }

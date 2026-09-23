@@ -27,10 +27,10 @@ struct AppView: View {
     @AppStorage("hasAcceptedReleaseLegal") private var hasAcceptedReleaseLegal = false
     var body: some View {
         TabView(selection: $tab) {
-            NavigationStack { HomeView() }.tabItem { Label("ホーム", systemImage: "house") }.tag(AppTab.home)
-            NavigationStack { MapScreen() }.tabItem { Label("マップ", systemImage: "map") }.tag(AppTab.map)
-            NavigationStack { RecordStartView() }.tabItem { Label("記録する", systemImage: "plus.circle.fill") }.tag(AppTab.record)
-            NavigationStack { ReleaseSettingsView() }.tabItem { Label("設定", systemImage: "gearshape") }.tag(AppTab.settings)
+            NavigationStack { HomeView() }.themeScreenBackground().tabItem { Label("ホーム", systemImage: "house") }.tag(AppTab.home)
+            NavigationStack { MapScreen() }.themeScreenBackground().tabItem { Label("マップ", systemImage: "map") }.tag(AppTab.map)
+            NavigationStack { RecordStartView() }.themeScreenBackground().tabItem { Label("記録する", systemImage: "plus.circle.fill") }.tag(AppTab.record)
+            NavigationStack { ReleaseSettingsView() }.themeScreenBackground().tabItem { Label("設定", systemImage: "gearshape") }.tag(AppTab.settings)
         }
         .tint(proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange"))
         .toolbarBackground(proAccess.isProUnlocked ? proPreferences.canvasColor : Color("PinterestCanvas"), for: .tabBar)

@@ -128,6 +128,7 @@ struct NextMealNoteView: View {
             NextMealNoteSection(note: $note)
         }
         .navigationTitle("次に食べたい")
+        .themeScreenBackground()
         .toolbar {
             if proAccess.isProUnlocked {
                 Button("保存") {
@@ -156,6 +157,7 @@ struct CreateCollectionView: View {
                 .foregroundStyle(.secondary)
         }
         .navigationTitle("まとめを作成")
+        .themeScreenBackground()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("キャンセル") { dismiss() } }
             ToolbarItem(placement: .confirmationAction) {
@@ -251,6 +253,7 @@ struct BulkRecordOrganizer: View {
             }
         }
         .navigationTitle("記録をまとめて整理")
+        .themeScreenBackground()
         .sheet(item: $createCollection) { item in
             NavigationStack { CreateCollectionView(recordIDs: item.ids) }
         }
@@ -357,6 +360,7 @@ struct MonthlyFoodReportView: View {
             }
         }
         .navigationTitle("月間ごはんレポート")
+        .themeScreenBackground()
     }
 }
 
