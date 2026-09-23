@@ -100,7 +100,7 @@ struct ProPaywallView: View {
             }
             .padding(20)
         }
-        .background(Color("PinterestCanvas").ignoresSafeArea())
+        .themeScreenBackground()
         .navigationTitle("グルメップ Pro")
         .navigationBarTitleDisplayMode(.inline)
         .task { await proAccess.prepare() }
@@ -193,7 +193,7 @@ struct AnnualFoodReportView: View {
             }
             .padding(16)
         }
-        .background(Color("PinterestCanvas").ignoresSafeArea())
+        .themeScreenBackground()
         .navigationTitle("年間ごはんレポート")
         .navigationBarTitleDisplayMode(.inline)
     }

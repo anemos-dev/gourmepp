@@ -89,6 +89,7 @@ struct AdvancedHomeFilterView: View {
         }
         .navigationTitle("高度な絞り込み")
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
     }
 
     private func tagBinding(for id: UUID) -> Binding<Bool> {
@@ -204,5 +205,6 @@ struct ProCustomizationView: View {
         }
         .navigationTitle("Proカスタマイズ")
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
     }
 }

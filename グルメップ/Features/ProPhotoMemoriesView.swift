@@ -152,7 +152,7 @@ struct ProPhotoMemoriesView: View {
             }
             .padding(16)
         }
-        .background(Color("PinterestCanvas").ignoresSafeArea())
+        .themeScreenBackground()
         .navigationTitle("写真の振り返り")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $sharedCollage) { collage in
