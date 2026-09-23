@@ -243,7 +243,7 @@ struct ShareCardMakerView: View {
             }
             .padding(16)
         }
-        .background(Color("PinterestCanvas").ignoresSafeArea())
+        .themeScreenBackground()
         .navigationTitle("投稿画像を作る")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $presentedSheet) { sheet in

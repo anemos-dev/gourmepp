@@ -94,6 +94,7 @@ struct MapScreen: View {
         }
         .navigationTitle("マップ")
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {

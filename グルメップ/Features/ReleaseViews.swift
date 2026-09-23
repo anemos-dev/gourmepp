@@ -345,6 +345,7 @@ struct ReleaseSettingsView: View {
             }
         }
         .navigationTitle("設定")
+        .themeScreenBackground()
         .task { ensureSettingsAndCleanTrash() }
         .offerCodeRedemption(isPresented: $showOfferCodeRedemption) { result in
             switch result {
@@ -677,6 +678,7 @@ struct ReleaseTrashView: View {
             }
         }
         .navigationTitle("ゴミ箱")
+        .themeScreenBackground()
         .toolbar {
             if !deletedRecords.isEmpty {
                 Button("空にする", role: .destructive) { showEmptyConfirmation = true }
@@ -810,6 +812,7 @@ struct PermissionSettingsView: View {
             }
         }
         .navigationTitle("権限の管理")
+        .themeScreenBackground()
     }
 
     private func permissionRow(title: String, detail: String, icon: String, status: String, action: @escaping () -> Void) -> some View {
@@ -929,5 +932,6 @@ private struct LegalDocumentView: View {
         }
         .navigationTitle(document.title)
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
     }
 }

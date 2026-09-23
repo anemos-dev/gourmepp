@@ -160,6 +160,7 @@ struct PlaceDetailView: View {
                     }
                 }
                 .navigationTitle("店舗詳細").navigationBarTitleDisplayMode(.inline)
+                .themeScreenBackground()
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { sharing = true } label: { Label("このお店を共有", systemImage: "square.and.arrow.up") }.accessibilityLabel("\(place.name)を共有") }; ToolbarItem(placement: .topBarTrailing) { Menu { Button("記録を編集", systemImage: "pencil") { editor = RecordEditorDestination(record: record, markingVisited: false) }; Button(role: .destructive) { showDeleteConfirmation = true } label: { Label("ゴミ箱に移動", systemImage: "trash") } } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("その他") } }
                 .sheet(item: $editor) { destination in
                     NavigationStack { RecordEditView(record: destination.record, markingVisited: destination.markingVisited) }
@@ -342,6 +343,7 @@ struct RecordEditView: View {
         }
         .navigationTitle(markingVisited ? "行った記録をつける" : "記録を編集")
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
         .disabled(isSaving)
         .overlay { if isSaving { ProgressView("保存中…").padding().background(.regularMaterial).clipShape(RoundedRectangle(cornerRadius: 12)) } }
         .interactiveDismissDisabled(isSaving)
@@ -547,6 +549,7 @@ struct CollectionDetailView: View {
         }
         .navigationTitle(collection.title)
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
         .toolbar { EditButton() }
     }
 

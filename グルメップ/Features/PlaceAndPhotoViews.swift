@@ -80,6 +80,7 @@ struct PlaceEditView: View {
         }
         .navigationTitle("店舗情報を編集")
         .navigationBarTitleDisplayMode(.inline)
+        .themeScreenBackground()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存", action: save)
@@ -174,6 +175,7 @@ struct DuplicatePlaceMergeView: View {
             }
         }
         .navigationTitle("統合先を選ぶ")
+        .themeScreenBackground()
         .alert("「\(place.name)」へ統合しますか？", isPresented: Binding(
             get: { target != nil },
             set: { if !$0 { target = nil } }
@@ -323,6 +325,7 @@ struct ReleasePhotoManagementView: View {
             }
         }
         .navigationTitle("写真を管理")
+        .themeScreenBackground()
         .disabled(isSaving)
         .toolbar { EditButton() }
         .sheet(isPresented: $showCamera) {
