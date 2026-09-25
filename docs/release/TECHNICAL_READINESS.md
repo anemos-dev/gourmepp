@@ -1,6 +1,6 @@
 # 技術リリース準備監査
 
-最終更新日: 2026-09-12
+最終更新日: 2026-09-25
 
 > 商標確認は完了している。App Store Connectへの登録・アップロード・TestFlight配布・審査提出・公開は、この監査時点では未実施。
 
@@ -26,6 +26,14 @@
 | 輸出コンプライアンス | 準備済み | `ITSAppUsesNonExemptEncryption = NO` を追加。独自暗号や新しいSDKを追加した場合は提出前に再判定する |
 | ストア掲載原稿 | 準備済み | 説明文、キーワード、カテゴリ・年齢区分の入力方針、公開済みのサポート／プライバシーポリシーURLを `docs/release/` に用意 |
 | UIテスト | 未完了 | 5分以上完了せず停止。Simulatorのアクセシビリティ階層取得も失敗 |
+
+## 2026-09-25 mainでの配布確認
+
+- `main`（README追加PR #12 のマージ後）からVersion `1.0`、Build `1`をArchiveした。ArchiveそのものはXcodeの自動署名により `Apple Development: KAZAHA KIMURA (L2T522923Q)` と開発用ワイルドカードプロファイルで署名されたため、アップロードには使わない。
+- Archiveを `app-store-connect` 方式でローカルExportし、App Store配布用IPAを作成した。IPAは `Apple Distribution: Anemos (R65SD9LLLX)` で署名され、`codesign --verify --deep --strict` に合格した。
+- XcodeがApp ID `com.anemos.gourmepp` 用のApp Storeプロファイル `iOS Team Store Provisioning Profile: com.anemos.gourmepp` を作成してExportに使用した。UUIDは `d6a5b69d-8bbe-470f-b0cd-444e116ac71a`、作成日は2026-09-25、期限は2027-09-11、`get-task-allow = false`。
+- IPAのdSYM UUIDと実行ファイルUUIDが一致し、arm64、Bundle ID、Version/Build、輸出コンプライアンスキーを確認した。IPAのSHA-256は `562144ab64c12d3a1ad14b2b092182d3be86332e9f6ba4077b7ea29e1b782b04`。
+- Archive: `/tmp/Gourmepp-main-1.0-1.xcarchive`。App Store配布用IPA: `/tmp/Gourmepp-main-1.0-1-export/グルメップ.ipa`。App Store Connectへのアップロード、TestFlight配布、審査提出は未実施。
 
 ## 実装上確認できたこと
 
