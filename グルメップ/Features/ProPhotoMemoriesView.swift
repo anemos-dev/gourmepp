@@ -252,13 +252,6 @@ enum PhotoCollageRenderer {
                 }
             }
 
-            ("記録は端末の中に。" as NSString).draw(
-                at: CGPoint(x: margin, y: 1200),
-                withAttributes: [
-                    .font: UIFont.systemFont(ofSize: 26, weight: .medium),
-                    .foregroundColor: UIColor(red: 0.38, green: 0.34, blue: 0.31, alpha: 1)
-                ]
-            )
         }
     }
 

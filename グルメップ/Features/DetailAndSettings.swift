@@ -34,7 +34,7 @@ struct PlaceDetailView: View {
                         ))
                         NavigationLink { NextMealNoteView(place: place) } label: {
                             VStack(alignment: .leading, spacing: 4) {
-                                Label("次に食べたい · Pro", systemImage: proAccess.isProUnlocked ? "fork.knife" : "lock.fill")
+                                Label("次に食べたい", systemImage: proAccess.isProUnlocked ? "fork.knife" : "lock.fill")
                                 Text(place.nextMealNote.isEmpty ? "次回食べたいメニューを残しましょう" : place.nextMealNote)
                                     .font(.caption).foregroundStyle(.secondary)
                             }

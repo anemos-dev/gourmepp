@@ -20,7 +20,7 @@ struct MapScreen: View {
     @Query private var records: [RestaurantRecord]
     @Query private var places: [Place]
     @Query private var photos: [RecordPhoto]
-    @State private var selected: RestaurantRecord?
+    @State private var selectedRecordIDs: [UUID] = []
     @State private var filter: RecordStatus? = nil
     @State private var locationService = DeviceLocationService()
     @State private var proMode: ProMapMode = .pins
@@ -55,20 +55,42 @@ struct MapScreen: View {
             RecordsMap(
                 records: displayedRecords,
                 places: places,
-                selected: $selected,
+                selectedRecordIDs: $selectedRecordIDs,
                 focusCoordinate: locationService.currentLocation?.coordinate,
                 showsDensity: proAccess.isProUnlocked && proMode == .density,
                 densityColor: UIColor(proPreferences.accentColor)
             )
             .overlay(alignment: .bottom) {
-                if let selected, let place = places.first(where: { $0.id == selected.placeID }) {
-                    NavigationLink { PlaceDetailView(recordID: selected.id) } label: {
-                        RecordCard(record: selected, place: place, compact: false, photo: photos.first { $0.recordID == selected.id })
-                            .padding()
-                            .background(.regularMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                if !selectedRecords.isEmpty {
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Button {
+                            selectedRecordIDs = []
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption.bold())
+                                .frame(width: 30, height: 30)
+                                .background(.regularMaterial, in: Circle())
+                        }
+                        .accessibilityLabel("地図の選択を閉じる")
+                        .padding(.trailing, 16)
+
+                        ScrollView(.horizontal, showsIndicators: selectedRecords.count > 1) {
+                            HStack(spacing: 10) {
+                                ForEach(selectedRecords) { record in
+                                    NavigationLink { PlaceDetailView(recordID: record.id) } label: {
+                                        MapSelectionCard(
+                                            record: record,
+                                            place: places.first { $0.id == record.placeID },
+                                            photo: photos.first { $0.recordID == record.id }
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.horizontal, 16)
+                        }
                     }
-                    .padding()
+                    .padding(.bottom, 12)
                 } else if proAccess.isProUnlocked && proMode == .nearbyWishlist && locationService.currentLocation == nil {
                     Button {
                         locationService.request()
@@ -124,7 +146,7 @@ struct MapScreen: View {
             }
         }
         .onChange(of: proMode) { _, newMode in
-            selected = nil
+            selectedRecordIDs = []
             if newMode == .nearbyWishlist { locationService.request() }
         }
     }
@@ -133,25 +155,74 @@ struct MapScreen: View {
         guard let place = places.first(where: { $0.id == record.placeID }) else { return .greatestFiniteMagnitude }
         return location.distance(from: CLLocation(latitude: place.latitude, longitude: place.longitude))
     }
+
+    private var selectedRecords: [RestaurantRecord] {
+        selectedRecordIDs.compactMap { id in displayedRecords.first { $0.id == id } }
+    }
+}
+
+private struct MapSelectionCard: View {
+    let record: RestaurantRecord
+    let place: Place?
+    let photo: RecordPhoto?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Group {
+                if let photo, let image = LocalPhotoStore().image(at: photo.thumbnailPath) {
+                    Image(uiImage: image).resizable().scaledToFill()
+                } else {
+                    Color("BrandOrange").opacity(0.25)
+                        .overlay { Image(systemName: "fork.knife").foregroundStyle(Color("BrandOrange")) }
+                }
+            }
+            .frame(width: 64, height: 64)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(place?.name ?? "店舗").font(.subheadline.bold()).lineLimit(2)
+                Text(record.status.title).font(.caption).foregroundStyle(.secondary)
+                if record.displayRating > 0 {
+                    Text("★ \(record.ratingText)").font(.caption).foregroundStyle(Color("BrandOrange"))
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(width: 250, height: 84)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityLabel("\(place?.name ?? "店舗")の詳細を開く")
+    }
 }
 
 struct RecordsMap: UIViewRepresentable {
-    let records: [RestaurantRecord]; let places: [Place]; @Binding var selected: RestaurantRecord?; var focusCoordinate: CLLocationCoordinate2D? = nil; var showsDensity = false; var densityColor = UIColor(red: 0.835, green: 0.4, blue: 0, alpha: 1)
+    let records: [RestaurantRecord]; let places: [Place]; @Binding var selectedRecordIDs: [UUID]; var focusCoordinate: CLLocationCoordinate2D? = nil; var showsDensity = false; var densityColor = UIColor(red: 0.835, green: 0.4, blue: 0, alpha: 1)
     func makeCoordinator() -> Coordinator { Coordinator(self) }
     func makeUIView(context: Context) -> MKMapView { let map = MKMapView(); map.delegate = context.coordinator; map.register(MKMarkerAnnotationView.self, forAnnotationViewWithReuseIdentifier: "place"); map.showsUserLocation = true; return map }
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.parent = self
-        map.removeAnnotations(map.annotations.filter { !($0 is MKUserLocation) })
-        map.removeOverlays(map.overlays)
         let annotations = records.compactMap { record -> RecordAnnotation? in
             guard let place = places.first(where: { $0.id == record.placeID }), place.latitude != 0 || place.longitude != 0 else { return nil }
             return RecordAnnotation(record: record, place: place)
         }
-        if showsDensity {
-            let circles = annotations.map { MKCircle(center: $0.coordinate, radius: 1_200) }
-            map.addOverlays(circles)
-        } else {
-            map.addAnnotations(annotations)
+        let signature = annotations.map {
+            "\($0.record.id):\($0.coordinate.latitude):\($0.coordinate.longitude):\($0.record.status):\($0.record.isFavorite)"
+        }
+        if context.coordinator.annotationSignature != signature || context.coordinator.lastShowsDensity != showsDensity {
+            context.coordinator.annotationSignature = signature
+            context.coordinator.lastShowsDensity = showsDensity
+            map.removeAnnotations(map.annotations.filter { !($0 is MKUserLocation) })
+            map.removeOverlays(map.overlays)
+            if showsDensity {
+                map.addOverlays(annotations.map { MKCircle(center: $0.coordinate, radius: 1_200) })
+            } else {
+                map.addAnnotations(annotations)
+            }
+        }
+        if selectedRecordIDs.isEmpty {
+            for annotation in map.selectedAnnotations {
+                map.deselectAnnotation(annotation, animated: false)
+            }
         }
         if let focusCoordinate, context.coordinator.shouldFocus(on: focusCoordinate) {
             map.setRegion(MKCoordinateRegion(center: focusCoordinate, latitudinalMeters: 2_000, longitudinalMeters: 2_000), animated: true)
@@ -164,6 +235,8 @@ struct RecordsMap: UIViewRepresentable {
         var parent: RecordsMap
         var didSetRegion = false
         var lastFocus: CLLocationCoordinate2D?
+        var annotationSignature: [String] = []
+        var lastShowsDensity: Bool?
         init(_ parent: RecordsMap) { self.parent = parent }
         func shouldFocus(on coordinate: CLLocationCoordinate2D) -> Bool {
             defer { lastFocus = coordinate }
@@ -171,7 +244,13 @@ struct RecordsMap: UIViewRepresentable {
             return abs(lastFocus.latitude - coordinate.latitude) > 0.00001 || abs(lastFocus.longitude - coordinate.longitude) > 0.00001
         }
         func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? { guard let annotation = annotation as? RecordAnnotation else { return nil }; let view = mapView.dequeueReusableAnnotationView(withIdentifier: "place", for: annotation) as! MKMarkerAnnotationView; view.canShowCallout = false; view.clusteringIdentifier = "records"; view.markerTintColor = annotation.record.isFavorite ? .systemYellow : UIColor(red: 0.835, green: 0.4, blue: 0, alpha: 1); view.glyphImage = UIImage(systemName: annotation.record.status == .visited ? "checkmark" : "bookmark.fill"); return view }
-        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) { if let annotation = view.annotation as? RecordAnnotation { parent.selected = annotation.record } }
+        func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {
+            if let cluster = view.annotation as? MKClusterAnnotation {
+                parent.selectedRecordIDs = cluster.memberAnnotations.compactMap { ($0 as? RecordAnnotation)?.record.id }
+            } else if let annotation = view.annotation as? RecordAnnotation {
+                parent.selectedRecordIDs = [annotation.record.id]
+            }
+        }
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
             guard let circle = overlay as? MKCircle else { return MKOverlayRenderer(overlay: overlay) }
             let renderer = MKCircleRenderer(circle: circle)
