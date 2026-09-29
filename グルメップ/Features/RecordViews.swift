@@ -97,6 +97,7 @@ struct RecordStartView: View {
             if !results.isEmpty { Section("検索結果（\(results.count)件）") { ForEach(results) { candidate in NavigationLink { RecordEditor(candidate: candidate) } label: { VStack(alignment: .leading, spacing: 3) { Text(candidate.name); Text(candidate.address).font(.caption).foregroundStyle(.secondary).lineLimit(2) } } } } }
         }
         .navigationTitle("記録する")
+        .navigationBarTitleDisplayMode(.inline)
         .themeScreenBackground()
         .sheet(isPresented: $showManual) { NavigationStack { ManualPlaceView() } }
     }
@@ -125,7 +126,7 @@ struct RecordEditor: View {
     @State private var wantsToReturn = false
     @State private var didLoadPlacePreferences = false
     @Environment(\.modelContext) private var context; @Environment(\.dismiss) private var dismiss; @Environment(AppErrorCenter.self) private var errors; @Query private var places: [Place]; @Query private var tags: [Tag]
-    let candidate: PlaceCandidate; @State private var status: RecordStatus = .visited; @State private var ratingHalfSteps = 0; @State private var memo = ""; @State private var relatedLinks: [RelatedLinkDraft] = [RelatedLinkDraft()]; @State private var visitDate = Date(); @State private var includeDate = true; @State private var selectedTags: Set<UUID> = []; @State private var newTagName = ""; @State private var photos: [PhotosPickerItem] = []; @State private var priceTier = 0; @State private var menuItems: [MenuDraft] = []; @State private var isSaving = false
+    let candidate: PlaceCandidate; @State private var status: RecordStatus = .visited; @State private var ratingHalfSteps = 0; @State private var memo = ""; @State private var relatedLinks: [RelatedLinkDraft] = [RelatedLinkDraft()]; @State private var visitDate = Date(); @State private var includeDate = true; @State private var selectedTags: Set<UUID> = []; @State private var newTagName = ""; @State private var photos: [PhotosPickerItem] = []; @State private var photoPreviews: [UIImage?] = []; @State private var previewFailures: Set<Int> = []; @State private var previewTask: Task<Void, Never>?; @State private var priceTier = 0; @State private var menuItems: [MenuDraft] = []; @State private var isSaving = false
 
     var body: some View {
         Form {
@@ -133,6 +134,31 @@ struct RecordEditor: View {
             Section("必須") { Picker("ステータス", selection: $status) { ForEach(RecordStatus.allCases) { Text($0.title).tag($0) } }.pickerStyle(.segmented) }
             Section("記録（あとから編集できます）") {
                 PhotosPicker(selection: $photos, maxSelectionCount: nil, matching: .images, preferredItemEncoding: .current) { Label("写真を追加", systemImage: "photo.on.rectangle") }
+                if !photos.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(photos.indices, id: \.self) { index in
+                                Group {
+                                    if photoPreviews.indices.contains(index), let image = photoPreviews[index] {
+                                        Image(uiImage: image).resizable().scaledToFill()
+                                    } else if previewFailures.contains(index) {
+                                        Image(systemName: "photo.badge.exclamationmark")
+                                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                            .background(Color.secondary.opacity(0.12))
+                                    } else {
+                                        ZStack {
+                                            Color.secondary.opacity(0.12)
+                                            ProgressView()
+                                        }
+                                    }
+                                }
+                                .frame(width: 88, height: 88)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .accessibilityLabel("追加する写真 \(index + 1)")
+                            }
+                        }
+                    }
+                }
                 PhotoDateSuggestion(photos: photos, visitDate: $visitDate, includeDate: $includeDate)
                 RatingPicker(ratingHalfSteps: $ratingHalfSteps)
                 Picker("価格帯", selection: $priceTier) {
@@ -172,6 +198,24 @@ struct RecordEditor: View {
         }
         .navigationTitle("お店を記録")
         .themeScreenBackground()
+        .onChange(of: photos) { _, selectedPhotos in
+            previewTask?.cancel()
+            photoPreviews = Array(repeating: nil, count: selectedPhotos.count)
+            previewFailures = []
+            previewTask = Task {
+                for (index, item) in selectedPhotos.enumerated() {
+                    guard !Task.isCancelled else { return }
+                    let data = try? await item.loadTransferable(type: Data.self)
+                    guard !Task.isCancelled else { return }
+                    if let data, let image = UIImage(data: data)?.preparingThumbnail(of: CGSize(width: 176, height: 176)) {
+                        photoPreviews[index] = image
+                    } else {
+                        previewFailures.insert(index)
+                    }
+                }
+            }
+        }
+        .onDisappear { previewTask?.cancel() }
         .interactiveDismissDisabled(isSaving)
         .onAppear {
             guard !didLoadPlacePreferences else { return }
