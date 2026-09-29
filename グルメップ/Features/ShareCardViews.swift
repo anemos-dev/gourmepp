@@ -404,28 +404,28 @@ struct ShareCardMakerView: View {
             sectionTitle("文字サイズ", detail: "すべての文字をまとめて調整できます")
             HStack(spacing: 12) {
                 Button {
-                    fontSizeOffset = max(-3, fontSizeOffset - 1)
+                    fontSizeOffset = max(-8, fontSizeOffset - 1)
                 } label: {
                     Text("−1")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(fontSizeOffset == -3)
+                .disabled(fontSizeOffset == -8)
 
                 Text(fontSizeOffset == 0 ? "標準" : "\(fontSizeOffset > 0 ? "+" : "")\(fontSizeOffset)")
                     .font(.subheadline.weight(.semibold))
                     .frame(width: 56)
 
                 Button {
-                    fontSizeOffset = min(3, fontSizeOffset + 1)
+                    fontSizeOffset = min(8, fontSizeOffset + 1)
                 } label: {
                     Text("+1")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(fontSizeOffset == 3)
+                .disabled(fontSizeOffset == 8)
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("文字サイズ")

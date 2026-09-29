@@ -265,9 +265,6 @@ struct ReleaseSettingsView: View {
                 Toggle("期限後に自動削除", isOn: autoTrashBinding)
                     .disabled((settings?.trashRetentionDays ?? 30) == 0)
                 LabeledContent("記録の公開範囲", value: "自分のみ")
-                Text("初版ではすべての記録を端末内だけに保存し、外部には公開しません。")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
 
             Section("データ") {
@@ -345,6 +342,7 @@ struct ReleaseSettingsView: View {
             }
         }
         .navigationTitle("設定")
+        .navigationBarTitleDisplayMode(.inline)
         .themeScreenBackground()
         .task { ensureSettingsAndCleanTrash() }
         .offerCodeRedemption(isPresented: $showOfferCodeRedemption) { result in
