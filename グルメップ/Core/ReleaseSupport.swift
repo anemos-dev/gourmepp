@@ -247,7 +247,7 @@ struct BackupService {
                     rating: $0.rating, ratingHalfSteps: $0.ratingHalfSteps, memo: $0.memo,
                     relatedLinks: $0.relatedLinks,
                     visitDate: $0.visitDate, price: $0.price, visibilityRaw: $0.visibilityRaw,
-                    isFavorite: $0.isFavorite, isDeleted: $0.isDeleted, deletedAt: $0.deletedAt,
+                    isFavorite: $0.isFavorite, isDeleted: $0.isTrashed, deletedAt: $0.deletedAt,
                     tagIDs: $0.tagIDs, companions: $0.companions,
                     placeVisibilityRaw: $0.placeVisibilityRaw,
                     ratingVisibilityRaw: $0.ratingVisibilityRaw,
@@ -363,7 +363,7 @@ struct BackupService {
             item.price = value.price
             item.visibilityRaw = value.visibilityRaw
             item.isFavorite = value.isFavorite
-            item.isDeleted = value.isDeleted
+            item.isTrashed = value.isDeleted
             item.deletedAt = value.deletedAt
             item.tagIDs = value.tagIDs
             item.companions = value.companions

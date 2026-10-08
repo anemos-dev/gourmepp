@@ -55,7 +55,7 @@ nonisolated struct EPUBService {
         let photoStore = LocalPhotoStore()
 
         let exports = try records
-            .filter { !$0.isDeleted && $0.status == .visited }
+            .filter { !$0.isTrashed && $0.status == .visited }
             .sorted {
                 let leftDate = $0.visitDate ?? $0.createdAt
                 let rightDate = $1.visitDate ?? $1.createdAt
@@ -135,7 +135,7 @@ nonisolated struct EPUBService {
         }
         var placesByID = Dictionary(uniqueKeysWithValues: currentPlaces.map { ($0.id, $0) })
         var tagsByName = currentTags.reduce(into: [String: Tag]()) { $0[$1.normalizedName] = $1 }
-        var fingerprints = Set(currentRecords.filter { !$0.isDeleted }.compactMap { record -> String? in
+        var fingerprints = Set(currentRecords.filter { !$0.isTrashed }.compactMap { record -> String? in
             guard let place = placesByID[record.placeID] else { return nil }
             return recordFingerprint(placeName: place.name, address: place.address, date: record.visitDate, memo: record.memo)
         })
