@@ -26,12 +26,12 @@ struct MapScreen: View {
     @State private var proMode: ProMapMode = .pins
 
     private var filteredRecords: [RestaurantRecord] {
-        records.filter { !$0.isDeleted && (filter == nil || $0.status == filter) }
+        records.filter { !$0.isTrashed && (filter == nil || $0.status == filter) }
     }
     private var nearbyWishlistRecords: [RestaurantRecord] {
         guard let location = locationService.currentLocation else { return [] }
         return records.filter { record in
-            guard !record.isDeleted,
+            guard !record.isTrashed,
                   record.status == .wantToGo,
                   let place = places.first(where: { $0.id == record.placeID }),
                   place.latitude != 0 || place.longitude != 0

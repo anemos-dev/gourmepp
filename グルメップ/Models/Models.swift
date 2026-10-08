@@ -105,7 +105,9 @@ enum InitialReleasePrivacy {
 }
 
 @Model final class RestaurantRecord {
-    var id: UUID = UUID(); var placeID: UUID = UUID(); var statusRaw: String = "wantToGo"; var rating: Int = 0; var ratingHalfSteps: Int = 0; var memo: String = ""; var relatedLinks: [String] = []; var visitDate: Date?; var price: Int?; var visibilityRaw: String = "private"; var isFavorite = false; var isDeleted = false; var deletedAt: Date?; var tagIDs: [UUID] = []; var companions: [String] = []; var placeVisibilityRaw: String = "private"; var ratingVisibilityRaw: String = "private"; var photoVisibilityRaw: String = "private"; var memoVisibilityRaw: String = "private"; var createdAt: Date = Date(); var updatedAt: Date = Date()
+    // Avoid PersistentModel.isDeleted; preserve the existing stored trash flag.
+    @Attribute(originalName: "isDeleted") var isTrashed: Bool = false
+    var id: UUID = UUID(); var placeID: UUID = UUID(); var statusRaw: String = "wantToGo"; var rating: Int = 0; var ratingHalfSteps: Int = 0; var memo: String = ""; var relatedLinks: [String] = []; var visitDate: Date?; var price: Int?; var visibilityRaw: String = "private"; var isFavorite = false; var deletedAt: Date?; var tagIDs: [UUID] = []; var companions: [String] = []; var placeVisibilityRaw: String = "private"; var ratingVisibilityRaw: String = "private"; var photoVisibilityRaw: String = "private"; var memoVisibilityRaw: String = "private"; var createdAt: Date = Date(); var updatedAt: Date = Date()
     init(placeID: UUID, status: RecordStatus) { self.placeID = placeID; self.statusRaw = status.rawValue }
     var status: RecordStatus { get { RecordStatus(rawValue: statusRaw) ?? .wantToGo } set { statusRaw = newValue.rawValue; updatedAt = .now } }
     /// Preserves ratings of records created before half-star ratings were introduced.
