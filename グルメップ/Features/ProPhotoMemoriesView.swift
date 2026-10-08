@@ -20,7 +20,7 @@ struct ProPhotoMemoriesView: View {
         let placeByID = Dictionary(uniqueKeysWithValues: places.map { ($0.id, $0) })
         return photos.compactMap { photo in
             guard let record = recordByID[photo.recordID],
-                  !record.isDeleted,
+                  !record.isTrashed,
                   record.status == .visited,
                   let date = record.visitDate,
                   Calendar.current.component(.year, from: date) == selectedYear,
@@ -40,7 +40,7 @@ struct ProPhotoMemoriesView: View {
     private var missingPhotoRecords: [RestaurantRecord] {
         let recordIDsWithPhotos = Set(photos.map(\.recordID))
         return records.filter { record in
-            guard !record.isDeleted,
+            guard !record.isTrashed,
                   record.status == .visited,
                   !recordIDsWithPhotos.contains(record.id),
                   let date = record.visitDate,

@@ -220,7 +220,7 @@ struct グルメップTests {
 
         let deleted = RestaurantRecord(placeID: osaka.id, status: .visited)
         deleted.visitDate = date(2026, 3, 20)
-        deleted.isDeleted = true
+        deleted.isTrashed = true
 
         let report = AnnualFoodReport(
             year: 2026,

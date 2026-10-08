@@ -169,8 +169,25 @@ struct PlaceDetailView: View {
                     NavigationStack { CreateCollectionView(recordIDs: selection.ids) }
                 }
                 .sheet(isPresented: $sharing) { ShareSheet(items: [restaurantShareText(record: record, place: place)]) }
-                .alert("この記録をゴミ箱へ移動しますか？", isPresented: $showDeleteConfirmation) { Button("移動", role: .destructive) { record.isDeleted = true; record.deletedAt = .now; saveChanges(); dismiss() }; Button("キャンセル", role: .cancel) {} }
             } else { ContentUnavailableView("記録が見つかりません", systemImage: "exclamationmark.triangle") }
+        }
+        .alert("この記録をゴミ箱へ移動しますか？", isPresented: $showDeleteConfirmation) {
+            Button("移動", role: .destructive, action: moveToTrash)
+            Button("キャンセル", role: .cancel) {}
+        }
+    }
+    private func moveToTrash() {
+        guard let record else { return }
+        let now = Date.now
+        do {
+            record.isTrashed = true
+            record.deletedAt = now
+            record.updatedAt = now
+            try context.save()
+            dismiss()
+        } catch {
+            context.rollback()
+            errors.show(error, title: "ゴミ箱へ移動できませんでした")
         }
     }
     private func add(_ record: RestaurantRecord, to collection: Collection) {
@@ -458,7 +475,7 @@ struct CollectionDetailView: View {
     private var orderedEntries: [CollectionEntry] {
         allEntries
             .filter { entry in
-                entry.collectionID == collection.id && records.contains { $0.id == entry.recordID && !$0.isDeleted }
+                entry.collectionID == collection.id && records.contains { $0.id == entry.recordID && !$0.isTrashed }
             }
             .sorted { left, right in
                 left.order == right.order ? left.id.uuidString < right.id.uuidString : left.order < right.order

@@ -271,7 +271,7 @@ struct ReleaseSettingsView: View {
                 BackupStatusView()
                 Button {
                     exportText = LocalExportImportService().csv(
-                        records: records.filter { !$0.isDeleted },
+                        records: records.filter { !$0.isTrashed },
                         places: places,
                         tags: tags
                     )
@@ -290,7 +290,7 @@ struct ReleaseSettingsView: View {
                 Button(action: prepareEPUB) {
                     Label("行った記録をEPUBで書き出す", systemImage: "books.vertical")
                 }
-                .disabled(isProcessingEPUB || !records.contains { !$0.isDeleted && $0.status == .visited })
+                .disabled(isProcessingEPUB || !records.contains { !$0.isTrashed && $0.status == .visited })
                 Button {
                     showEPUBImporter = true
                 } label: {
@@ -310,7 +310,7 @@ struct ReleaseSettingsView: View {
                 NavigationLink {
                     ReleaseTrashView()
                 } label: {
-                    Label("ゴミ箱（\(records.filter(\.isDeleted).count)件）", systemImage: "trash")
+                    Label("ゴミ箱（\(records.filter(\.isTrashed).count)件）", systemImage: "trash")
                 }
                 Button(role: .destructive) {
                     showDeleteAllConfirmation = true
@@ -473,7 +473,7 @@ struct ReleaseSettingsView: View {
         guard settings?.automaticallyEmptyTrash == true,
               let days = settings?.trashRetentionDays, days > 0,
               let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: .now) else { return }
-        records.filter { $0.isDeleted && ($0.deletedAt ?? .now) < cutoff }.forEach(permanentlyDelete)
+        records.filter { $0.isTrashed && ($0.deletedAt ?? .now) < cutoff }.forEach(permanentlyDelete)
         save()
     }
 
@@ -636,7 +636,8 @@ struct ReleaseSettingsView: View {
 struct ReleaseTrashView: View {
     @Environment(\.modelContext) private var context
     @Environment(AppErrorCenter.self) private var errors
-    @Query private var records: [RestaurantRecord]
+    @Query(filter: #Predicate<RestaurantRecord> { $0.isTrashed }) private var records: [RestaurantRecord]
+    @Query private var allRecords: [RestaurantRecord]
     @Query private var places: [Place]
     @Query private var photos: [RecordPhoto]
     @Query private var menuItems: [RecordMenuItem]
@@ -644,7 +645,7 @@ struct ReleaseTrashView: View {
     @State private var recordToDelete: RestaurantRecord?
     @State private var showEmptyConfirmation = false
 
-    private var deletedRecords: [RestaurantRecord] { records.filter(\.isDeleted) }
+    private var deletedRecords: [RestaurantRecord] { records }
 
     var body: some View {
         Group {
@@ -704,7 +705,7 @@ struct ReleaseTrashView: View {
     }
 
     private func restore(_ record: RestaurantRecord) {
-        record.isDeleted = false
+        record.isTrashed = false
         record.deletedAt = nil
         record.updatedAt = .now
         save()
@@ -716,7 +717,7 @@ struct ReleaseTrashView: View {
         entries.filter { $0.recordID == record.id }.forEach(context.delete)
         let placeID = record.placeID
         context.delete(record)
-        if !records.contains(where: { $0.id != record.id && $0.placeID == placeID }),
+        if !allRecords.contains(where: { $0.id != record.id && $0.placeID == placeID }),
            let place = places.first(where: { $0.id == placeID }) {
             context.delete(place)
         }

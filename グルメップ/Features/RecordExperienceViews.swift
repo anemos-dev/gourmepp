@@ -197,7 +197,7 @@ struct BulkRecordOrganizer: View {
     @State private var createCollection: CollectionSelection?
 
     private var records: [RestaurantRecord] {
-        let byID = Dictionary(uniqueKeysWithValues: allRecords.filter { !$0.isDeleted }.map { ($0.id, $0) })
+        let byID = Dictionary(uniqueKeysWithValues: allRecords.filter { !$0.isTrashed }.map { ($0.id, $0) })
         return recordIDs.compactMap { byID[$0] }
     }
     private var selected: [RestaurantRecord] { records.filter { selection.contains($0.id) } }
@@ -259,25 +259,29 @@ struct BulkRecordOrganizer: View {
         }
         .alert("\(selected.count)件をゴミ箱へ移動しますか？", isPresented: $showDelete) {
             Button("移動", role: .destructive) {
-                apply {
-                    for record in selected { record.isDeleted = true; record.deletedAt = .now; record.updatedAt = .now }
+                if apply({
+                    for record in selected { record.isTrashed = true; record.deletedAt = .now; record.updatedAt = .now }
+                }) {
+                    selection = []
                 }
-                selection = []
             }
             Button("キャンセル", role: .cancel) {}
         } message: { Text("設定のゴミ箱から復元できます。") }
     }
 
-    private func apply(_ change: () -> Void) {
+    @discardableResult
+    private func apply(_ change: () -> Void) -> Bool {
         do {
             // Save earlier edits before creating an isolated rollback boundary.
             try context.save()
             change()
             try context.save()
             message = "変更を保存しました"
+            return true
         } catch {
             context.rollback()
             errors.show(error, title: "一括変更を保存できませんでした")
+            return false
         }
     }
     private func addTag(_ tag: Tag) {

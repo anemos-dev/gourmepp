@@ -46,7 +46,7 @@ struct MonthlyFoodReport {
     let averageRating: Double?
 
     init(month: Date, records: [RestaurantRecord], calendar: Calendar = .current) {
-        let valid = records.filter { !$0.isDeleted && $0.status == .visited && $0.visitDate != nil }
+        let valid = records.filter { !$0.isTrashed && $0.status == .visited && $0.visitDate != nil }
         let interval = calendar.dateInterval(of: .month, for: month)
         let visits = valid.filter { record in
             guard let date = record.visitDate, let interval else { return false }
