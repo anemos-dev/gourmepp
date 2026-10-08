@@ -1,0 +1,3 @@
+interface:
+  display_name: "Xcode Cloud"
+  short_description: "Start dev or staging TestFlight builds"
