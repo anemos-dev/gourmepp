@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "PaywallPhoto.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}
