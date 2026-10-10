@@ -26,6 +26,7 @@
 ## Gitブランチ運用
 
 - 製品機能・通常の修正を`developer-menu`へ直接pushしない。製品機能は最新の`main`から作成した`feature/*`ブランチで実装し、`main`向けPRで取り込む。
+- 作業終了前に、成果ブランチをXcodeで開いているプロジェクトのチェックアウトにも反映し、Xcodeからすぐ動作確認できる状態にします。別worktreeで実装した場合は、既存の未コミット変更を保護しながら成果物を移し、そのworktreeを解放してから元のチェックアウトを成果ブランチへ切り替えます。`git branch --show-current`と`git status`で最終状態を確認し、ビルドが必要な作業では切り替え後のチェックアウトからビルドします。Simulatorは既存端末を再利用します。commitやpushは明示依頼がない限り行いません。
 - `main`へマージされた製品機能は、GitHub Actionsによる自動同期で`developer-menu`へ反映する。
 - `developer-menu`への直接pushは、デバッグ専用コードの変更、または自動同期の競合を内容確認のうえ手動解決する場合に限る。
 - `developer-menu`のrebaseまたはforce-pushは、明示的な依頼があり、対象リビジョンと共同作業者への影響を確認した場合にだけ行う。

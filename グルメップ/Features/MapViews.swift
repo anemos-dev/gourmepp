@@ -27,12 +27,12 @@ struct MapScreen: View {
     @State private var showProPaywall = false
 
     private var filteredRecords: [RestaurantRecord] {
-        records.filter { !$0.isDeleted && (filter == nil || $0.status == filter) }
+        records.filter { !$0.isTrashed && (filter == nil || $0.status == filter) }
     }
     private var nearbyWishlistRecords: [RestaurantRecord] {
         guard let location = locationService.currentLocation else { return [] }
         return records.filter { record in
-            guard !record.isDeleted,
+            guard !record.isTrashed,
                   record.status == .wantToGo,
                   let place = places.first(where: { $0.id == record.placeID }),
                   place.latitude != 0 || place.longitude != 0
@@ -61,6 +61,12 @@ struct MapScreen: View {
                 showsDensity: proAccess.isProUnlocked && proMode == .density,
                 densityColor: UIColor(proPreferences.accentColor)
             )
+            .overlay(alignment: .topLeading) {
+                if proAccess.isProUnlocked && proMode == .density {
+                    DensityLegend(color: proPreferences.accentColor)
+                        .padding(12)
+                }
+            }
             .overlay(alignment: .bottom) {
                 if !selectedRecords.isEmpty {
                     VStack(alignment: .trailing, spacing: 4) {
@@ -173,6 +179,30 @@ struct MapScreen: View {
     }
 }
 
+private struct DensityLegend: View {
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label("訪問密度", systemImage: "hexagon.fill")
+                .font(.caption.bold())
+            HStack(spacing: 8) {
+                Text("少")
+                Capsule()
+                    .fill(LinearGradient(colors: [color.opacity(0.2), color], startPoint: .leading, endPoint: .trailing))
+                    .frame(width: 72, height: 7)
+                Text("多")
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .padding(10)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("訪問密度。六角形の色が濃いほど、そのエリアの訪問店舗数が多くなります。凡例は少から多です。")
+    }
+}
+
 private struct MapSelectionCard: View {
     let record: RestaurantRecord
     let place: Place?
@@ -220,14 +250,20 @@ struct RecordsMap: UIViewRepresentable {
         let signature = annotations.map {
             "\($0.record.id):\($0.coordinate.latitude):\($0.coordinate.longitude):\($0.record.status):\($0.record.isFavorite)"
         }
-        if context.coordinator.annotationSignature != signature || context.coordinator.lastShowsDensity != showsDensity {
+        context.coordinator.densityAnnotations = annotations
+        let densityColorChanged = showsDensity && context.coordinator.lastDensityColor?.isEqual(densityColor) != true
+        if context.coordinator.annotationSignature != signature || context.coordinator.lastShowsDensity != showsDensity || densityColorChanged {
             context.coordinator.annotationSignature = signature
             context.coordinator.lastShowsDensity = showsDensity
+            context.coordinator.lastDensityColor = densityColor
             map.removeAnnotations(map.annotations.filter { !($0 is MKUserLocation) })
             map.removeOverlays(map.overlays)
+            context.coordinator.densityRecordCounts.removeAll()
             if showsDensity {
-                map.addOverlays(annotations.map { MKCircle(center: $0.coordinate, radius: 1_200) })
+                context.coordinator.densityZoomTier = densityZoomTier(for: map)
+                addDensityOverlays(to: map, annotations: annotations, tier: context.coordinator.densityZoomTier)
             } else {
+                context.coordinator.densityZoomTier = nil
                 map.addAnnotations(annotations)
             }
         }
@@ -243,12 +279,66 @@ struct RecordsMap: UIViewRepresentable {
             context.coordinator.didSetRegion = true
         }
     }
+
+    private func addDensityOverlays(to map: MKMapView, annotations: [RecordAnnotation], tier: DensityZoomTier?) {
+        guard let tier else { return }
+        let hexagons = makeDensityHexagons(from: annotations, radiusMeters: tier.radiusMeters)
+        map.delegate.flatMap { $0 as? Coordinator }?.densityRecordCounts = Dictionary(
+            uniqueKeysWithValues: hexagons.map { (ObjectIdentifier($0.polygon), $0.recordCount) }
+        )
+        map.addOverlays(hexagons.map(\.polygon))
+    }
+
+    private func densityZoomTier(for map: MKMapView) -> DensityZoomTier {
+        let latitude = map.region.center.latitude
+        let visibleWidthMeters = map.visibleMapRect.width * MKMetersPerMapPointAtLatitude(latitude)
+        return DensityZoomTier.forVisibleWidth(visibleWidthMeters)
+    }
+
+    private func makeDensityHexagons(from annotations: [RecordAnnotation], radiusMeters: Double) -> [DensityHexagon] {
+        guard !annotations.isEmpty else { return [] }
+
+        let referenceLatitude = annotations.map(\.coordinate.latitude).reduce(0, +) / Double(annotations.count)
+        let metersPerMapPoint = MKMetersPerMapPointAtLatitude(referenceLatitude)
+        let radius = radiusMeters / metersPerMapPoint
+        let origin = MKMapPoint(annotations[0].coordinate)
+        var grouped: [HexCell: [RecordAnnotation]] = [:]
+
+        for annotation in annotations {
+            let point = MKMapPoint(annotation.coordinate)
+            let x = (point.x - origin.x) / radius
+            let y = (point.y - origin.y) / radius
+            let q = sqrt(3) / 3 * x - y / 3
+            let r = 2 / 3 * y
+            grouped[HexCell.rounded(q: q, r: r), default: []].append(annotation)
+        }
+
+        return grouped.map { cell, members in
+            let centerX = origin.x + radius * sqrt(3) * (Double(cell.q) + Double(cell.r) / 2)
+            let centerY = origin.y + radius * 1.5 * Double(cell.r)
+            let center = MKMapPoint(x: centerX, y: centerY)
+            let vertices = (0..<6).map { index -> CLLocationCoordinate2D in
+                let angle = (Double(index) * 60 + 30) * .pi / 180
+                let point = MKMapPoint(x: center.x + radius * 0.9 * cos(angle), y: center.y + radius * 0.9 * sin(angle))
+                return point.coordinate
+            }
+            return DensityHexagon(
+                polygon: MKPolygon(coordinates: vertices, count: vertices.count),
+                recordCount: members.count
+            )
+        }
+    }
+
     final class Coordinator: NSObject, MKMapViewDelegate {
         var parent: RecordsMap
         var didSetRegion = false
         var lastFocus: CLLocationCoordinate2D?
         var annotationSignature: [String] = []
         var lastShowsDensity: Bool?
+        var lastDensityColor: UIColor?
+        var densityRecordCounts: [ObjectIdentifier: Int] = [:]
+        var densityAnnotations: [RecordAnnotation] = []
+        fileprivate var densityZoomTier: DensityZoomTier?
         init(_ parent: RecordsMap) { self.parent = parent }
         func shouldFocus(on coordinate: CLLocationCoordinate2D) -> Bool {
             defer { lastFocus = coordinate }
@@ -264,13 +354,67 @@ struct RecordsMap: UIViewRepresentable {
             }
         }
         func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-            guard let circle = overlay as? MKCircle else { return MKOverlayRenderer(overlay: overlay) }
-            let renderer = MKCircleRenderer(circle: circle)
-            renderer.fillColor = parent.densityColor.withAlphaComponent(0.22)
-            renderer.strokeColor = parent.densityColor.withAlphaComponent(0.42)
-            renderer.lineWidth = 1
+            guard let polygon = overlay as? MKPolygon,
+                  let recordCount = densityRecordCounts[ObjectIdentifier(polygon)] else {
+                return MKOverlayRenderer(overlay: overlay)
+            }
+            let renderer = MKPolygonRenderer(polygon: polygon)
+            let intensity = min(log2(Double(recordCount)) / 3, 1)
+            renderer.fillColor = parent.densityColor.withAlphaComponent(0.18 + 0.5 * intensity)
+            renderer.strokeColor = parent.densityColor.withAlphaComponent(0.35 + 0.5 * intensity)
+            renderer.lineWidth = 1.2
             return renderer
+        }
+        func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+            guard parent.showsDensity else { return }
+            let tier = parent.densityZoomTier(for: mapView)
+            guard tier != densityZoomTier else { return }
+            mapView.removeOverlays(mapView.overlays)
+            densityRecordCounts.removeAll()
+            densityZoomTier = tier
+            parent.addDensityOverlays(to: mapView, annotations: densityAnnotations, tier: tier)
         }
     }
 }
+
+private struct HexCell: Hashable {
+    let q: Int
+    let r: Int
+
+    static func rounded(q: Double, r: Double) -> HexCell {
+        let s = -q - r
+        var roundedQ = q.rounded()
+        var roundedR = r.rounded()
+        let roundedS = s.rounded()
+
+        if abs(roundedQ - q) > abs(roundedR - r), abs(roundedQ - q) > abs(roundedS - s) {
+            roundedQ = -roundedR - roundedS
+        } else if abs(roundedR - r) > abs(roundedS - s) {
+            roundedR = -roundedQ - roundedS
+        }
+        return HexCell(q: Int(roundedQ), r: Int(roundedR))
+    }
+}
+
+private struct DensityHexagon {
+    let polygon: MKPolygon
+    let recordCount: Int
+}
+
+private struct DensityZoomTier: Equatable {
+    let radiusMeters: Double
+
+    static func forVisibleWidth(_ meters: Double) -> DensityZoomTier {
+        // 表示幅の約1割を目安に、街区から全国表示まで段階的に集約する。
+        let targetRadius = meters / 10
+        let radii: [Double] = [
+            25, 50, 100, 200, 500,
+            1_000, 2_000, 5_000, 10_000, 20_000, 50_000,
+            100_000, 200_000, 500_000, 1_000_000, 2_000_000, 5_000_000
+        ]
+        let tierRadius = radii.first { $0 >= targetRadius } ?? 5_000_000
+        return DensityZoomTier(radiusMeters: tierRadius * 0.8)
+    }
+}
+
 final class RecordAnnotation: NSObject, MKAnnotation { let record: RestaurantRecord; let coordinate: CLLocationCoordinate2D; let title: String?; init(record: RestaurantRecord, place: Place) { self.record = record; coordinate = CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude); title = place.name } }

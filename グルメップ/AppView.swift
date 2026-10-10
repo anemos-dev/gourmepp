@@ -50,7 +50,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(ProAccessController.self) private var proAccess
     @Environment(ProPreferences.self) private var proPreferences
-    @Query(sort: \RestaurantRecord.updatedAt, order: .reverse) private var records: [RestaurantRecord]
+    @Query(filter: #Predicate<RestaurantRecord> { !$0.isTrashed }, sort: \RestaurantRecord.updatedAt, order: .reverse) private var records: [RestaurantRecord]
     @Query private var places: [Place]
     @Query private var tags: [Tag]
     @Query private var photos: [RecordPhoto]
@@ -64,7 +64,7 @@ struct HomeView: View {
     private var displayed: [RestaurantRecord] {
         let recordsWithPhotos = Set(photos.map(\.recordID))
         let base = records.filtered(query: query, tags: selectedTags, places: places).filter { record in
-            !record.isDeleted && (statusFilter.status == nil || record.status == statusFilter.status)
+            statusFilter.status == nil || record.status == statusFilter.status
         }
             .filter { !favoritesOnly || $0.isFavorite }
             .filter { record in !returnsOnly || places.first { $0.id == record.placeID }?.wantsToReturn == true }

@@ -245,7 +245,7 @@ struct AnnualFoodReport {
     ) {
         self.year = year
         let visits = records.filter { record in
-            guard !record.isDeleted,
+            guard !record.isTrashed,
                   record.status == .visited,
                   let visitDate = record.visitDate
             else { return false }

@@ -35,7 +35,7 @@ struct RecordExperienceTests {
         let first = visit(newPlace, date(9, 20))
         let second = visit(newPlace, date(9, 21))
         let nextMonth = visit(UUID(), date(10))
-        let deleted = visit(UUID(), date(9)); deleted.isDeleted = true
+        let deleted = visit(UUID(), date(9)); deleted.isTrashed = true
         let wishlist = visit(UUID(), date(9)); wishlist.status = .wantToGo
         let undated = RestaurantRecord(placeID: UUID(), status: .visited)
         let report = MonthlyFoodReport(month: date(9), records: [previous, returning, first, second, nextMonth, deleted, wishlist, undated], calendar: calendar)
