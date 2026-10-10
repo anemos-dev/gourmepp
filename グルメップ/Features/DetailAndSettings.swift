@@ -8,6 +8,7 @@ struct PlaceDetailView: View {
     @Environment(ProAccessController.self) private var proAccess
     @State private var editor: RecordEditorDestination?
     @State private var collectionSelection: CollectionSelection?
+    @State private var showProPaywall = false
     @Environment(\.modelContext) private var context; @Environment(\.dismiss) private var dismiss; @Environment(AppErrorCenter.self) private var errors; let recordID: UUID; @Query private var records: [RestaurantRecord]; @Query private var places: [Place]; @Query private var tags: [Tag]; @Query private var photos: [RecordPhoto]; @Query private var menuItems: [RecordMenuItem]; @Query private var collections: [Collection]; @Query private var collectionEntries: [CollectionEntry]; @State private var sharing = false; @State private var showDeleteConfirmation = false
     private var record: RestaurantRecord? { records.first { $0.id == recordID } }; private var place: Place? { guard let record else { return nil }; return places.first { $0.id == record.placeID } }
     var body: some View {
@@ -32,12 +33,15 @@ struct PlaceDetailView: View {
                                 catch { place.wantsToReturn = previous; errors.show(error, title: "保存できませんでした") }
                             }
                         ))
-                        NavigationLink { NextMealNoteView(place: place) } label: {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("次に食べたい", systemImage: proAccess.isProUnlocked ? "fork.knife" : "lock.fill")
-                                Text(place.nextMealNote.isEmpty ? "次回食べたいメニューを残しましょう" : place.nextMealNote)
-                                    .font(.caption).foregroundStyle(.secondary)
-                            }
+                        let nextMealLabel = VStack(alignment: .leading, spacing: 4) {
+                            Label("次に食べたい", systemImage: "fork.knife")
+                            Text(place.nextMealNote.isEmpty ? "次回食べたいメニューを残しましょう" : place.nextMealNote)
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        if proAccess.isProUnlocked {
+                            NavigationLink { NextMealNoteView(place: place) } label: { nextMealLabel }
+                        } else {
+                            Button { showProPaywall = true } label: { nextMealLabel }
                         }
                     }
                     Section("自分の記録") {
@@ -161,6 +165,7 @@ struct PlaceDetailView: View {
                 }
                 .navigationTitle("店舗詳細").navigationBarTitleDisplayMode(.inline)
                 .themeScreenBackground()
+                .proPaywall(isPresented: $showProPaywall)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { sharing = true } label: { Label("このお店を共有", systemImage: "square.and.arrow.up") }.accessibilityLabel("\(place.name)を共有") }; ToolbarItem(placement: .topBarTrailing) { Menu { Button("記録を編集", systemImage: "pencil") { editor = RecordEditorDestination(record: record, markingVisited: false) }; Button(role: .destructive) { showDeleteConfirmation = true } label: { Label("ゴミ箱に移動", systemImage: "trash") } } label: { Image(systemName: "ellipsis.circle") }.accessibilityLabel("その他") } }
                 .sheet(item: $editor) { destination in
                     NavigationStack { RecordEditView(record: destination.record, markingVisited: destination.markingVisited) }

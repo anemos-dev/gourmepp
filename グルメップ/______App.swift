@@ -13,6 +13,7 @@ struct ______App: App {
     @State private var errorCenter = AppErrorCenter()
     @State private var proAccess = ProAccessController()
     @State private var proPreferences = ProPreferences()
+    @State private var proOfferPresenter = ProOfferPresenter()
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             LocalUserProfile.self,
@@ -45,6 +46,7 @@ struct ______App: App {
                 .environment(errorCenter)
                 .environment(proAccess)
                 .environment(proPreferences)
+                .environment(proOfferPresenter)
                 .appErrorAlert(errorCenter)
                 .task {
                     do {

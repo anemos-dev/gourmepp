@@ -56,6 +56,7 @@ struct HomeView: View {
     @Query private var photos: [RecordPhoto]
     @State private var statusFilter: HomeStatusFilter = .all; @State private var query = ""; @State private var selectedTags: Set<UUID> = []; @State private var layout: HomeLayout = .grid; @State private var favoritesOnly = false; @State private var selectedPrice: Int?; @State private var selectedArea = ""; @State private var sort: RecordSort = .updated; @State private var minimumRating = 0.0; @State private var hasPhotosOnly = false; @State private var didApplyHomePreferences = false
     @State private var returnsOnly = false
+    @State private var showProPaywall = false
     private var areas: [String] { Array(Set(places.map { $0.area.isEmpty ? Place.area(from: $0.address) : $0.area }.filter { !$0.isEmpty })).sorted() }
     private var accentColor: Color { proAccess.isProUnlocked ? proPreferences.accentColor : Color("BrandOrange") }
     private var highlightColor: Color { proAccess.isProUnlocked ? proPreferences.highlightColor : Color("BrandSun") }
@@ -134,18 +135,21 @@ struct HomeView: View {
                         } label: {
                             Label("高度な絞り込み", systemImage: "line.3.horizontal.decrease.circle")
                         }
-                        if !proPreferences.savedFilters.isEmpty {
-                            Menu("保存した条件") {
-                                ForEach(proPreferences.savedFilters) { filter in
-                                    Button(filter.name) { apply(filter) }
+                    } else {
+                        Button { showProPaywall = true } label: {
+                            Label("高度な絞り込み", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                    }
+                    if !proPreferences.savedFilters.isEmpty {
+                        Menu("保存した条件") {
+                            ForEach(proPreferences.savedFilters) { filter in
+                                Button {
+                                    if proAccess.isProUnlocked { apply(filter) }
+                                    else { showProPaywall = true }
+                                } label: {
+                                    Label(filter.name, systemImage: proAccess.isProUnlocked ? "line.3.horizontal.decrease.circle" : "lock.fill")
                                 }
                             }
-                        }
-                    } else {
-                        NavigationLink {
-                            ProPaywallView()
-                        } label: {
-                            Label("高度な絞り込み（Pro）", systemImage: "lock.fill")
                         }
                     }
                 } label: {
@@ -153,6 +157,7 @@ struct HomeView: View {
                 }
             }
         }
+        .proPaywall(isPresented: $showProPaywall)
     }
     private var statusPicker: some View {
         Picker("記録の状態", selection: $statusFilter) {
