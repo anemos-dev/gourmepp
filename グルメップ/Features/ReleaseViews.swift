@@ -136,6 +136,7 @@ struct ReleaseSettingsView: View {
     @Query private var menuItems: [RecordMenuItem]
     @State private var collectionName = ""
     @State private var showOfferCodeRedemption = false
+    @State private var showProPaywall = false
     @State private var exportText: String?
     @State private var showCSVShare = false
     @AppStorage("backup.lastSuccessfulSnapshot") private var backupSnapshotData = Data()
@@ -160,11 +161,14 @@ struct ReleaseSettingsView: View {
     var body: some View {
         List {
             Section("グルメップ Pro") {
-                NavigationLink {
-                    if proAccess.isProUnlocked { MonthlyFoodReportView() }
-                    else { ProPaywallView() }
-                } label: {
-                    Label("月間ごはんレポート", systemImage: "calendar")
+                if proAccess.isProUnlocked {
+                    NavigationLink { MonthlyFoodReportView() } label: {
+                        Label("月間ごはんレポート", systemImage: "calendar")
+                    }
+                } else {
+                    Button { showProPaywall = true } label: {
+                        Label("月間ごはんレポート", systemImage: "calendar")
+                    }
                 }
                 if proAccess.isProUnlocked {
                     NavigationLink {
@@ -183,19 +187,13 @@ struct ReleaseSettingsView: View {
                         Label("表示をカスタマイズ", systemImage: "paintpalette.fill")
                     }
                 } else {
-                    NavigationLink {
-                        ProPaywallView()
-                    } label: {
+                    Button { showProPaywall = true } label: {
                         Label("年間ごはんレポート", systemImage: "chart.bar.fill")
                     }
-                    NavigationLink {
-                        ProPaywallView()
-                    } label: {
+                    Button { showProPaywall = true } label: {
                         Label("写真の振り返り", systemImage: "photo.stack.fill")
                     }
-                    NavigationLink {
-                        ProPaywallView()
-                    } label: {
+                    Button { showProPaywall = true } label: {
                         Label("表示をカスタマイズ", systemImage: "paintpalette.fill")
                     }
                 }
@@ -338,6 +336,7 @@ struct ReleaseSettingsView: View {
                 errors.show(error, title: "Proコードを確認できませんでした")
             }
         }
+        .proPaywall(isPresented: $showProPaywall)
         .sheet(isPresented: $showCSVShare) {
             if let exportText { ShareSheet(items: [exportText]) }
         }

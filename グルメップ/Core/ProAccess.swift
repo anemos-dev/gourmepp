@@ -82,6 +82,10 @@ final class ProAccessController {
     }
 
     func purchase() async {
+        await purchase(product: product)
+    }
+
+    func purchase(product: Product?) async {
         guard let product, !isPurchasing else {
             if product == nil {
                 errorMessage = "商品情報を読み込めませんでした。しばらくしてから、もう一度お試しください。"
@@ -130,7 +134,8 @@ final class ProAccessController {
         var ownsPro = false
         for await result in Transaction.currentEntitlements {
             let transaction = try verified(result)
-            guard transaction.productID == Self.lifetimeProductID else { continue }
+            let supportedIDs = [Self.lifetimeProductID] + ProSubscriptionPlan.allCases.compactMap(\.productID)
+            guard supportedIDs.contains(transaction.productID) else { continue }
             if transaction.revocationDate == nil {
                 ownsPro = true
             }

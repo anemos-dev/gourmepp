@@ -86,6 +86,7 @@ struct PhotoDateSuggestion: View {
 struct NextMealNoteSection: View {
     @Environment(ProAccessController.self) private var proAccess
     @Binding var note: String
+    @State private var showProPaywall = false
 
     var body: some View {
         Section {
@@ -97,15 +98,14 @@ struct NextMealNoteSection: View {
                     .font(.caption).foregroundStyle(.secondary)
             } else {
                 if !note.isEmpty { Text(note) }
-                NavigationLink {
-                    ProPaywallView()
-                } label: {
+                Button { showProPaywall = true } label: {
                     Label("Proで次に食べたいメニューを残す", systemImage: "lock.fill")
                 }
             }
         } header: {
             Text("次に食べたい · Pro")
         }
+        .proPaywall(isPresented: $showProPaywall)
     }
 }
 

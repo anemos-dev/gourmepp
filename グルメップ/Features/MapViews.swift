@@ -24,6 +24,7 @@ struct MapScreen: View {
     @State private var filter: RecordStatus? = nil
     @State private var locationService = DeviceLocationService()
     @State private var proMode: ProMapMode = .pins
+    @State private var showProPaywall = false
 
     private var filteredRecords: [RestaurantRecord] {
         records.filter { !$0.isDeleted && (filter == nil || $0.status == filter) }
@@ -126,10 +127,20 @@ struct MapScreen: View {
                             ForEach(RecordStatus.allCases) { Text($0.title).tag(Optional($0)) }
                         }
                     }
-                    if proAccess.isProUnlocked {
-                        Section("表示") {
-                            Picker("地図の表示", selection: $proMode) {
-                                ForEach(ProMapMode.allCases) { Text($0.title).tag($0) }
+                    Section("表示") {
+                        Picker("地図の表示", selection: Binding(
+                            get: { proMode },
+                            set: { newMode in
+                                guard proAccess.isProUnlocked else {
+                                    if newMode != .pins { showProPaywall = true }
+                                    return
+                                }
+                                proMode = newMode
+                            }
+                        )) {
+                            ForEach(ProMapMode.allCases) { mode in
+                                Text(mode.title + (mode == .pins || proAccess.isProUnlocked ? "" : " 🔒"))
+                                    .tag(mode)
                             }
                         }
                     }
@@ -149,6 +160,7 @@ struct MapScreen: View {
             selectedRecordIDs = []
             if newMode == .nearbyWishlist { locationService.request() }
         }
+        .proPaywall(isPresented: $showProPaywall)
     }
 
     private func distance(to record: RestaurantRecord, from location: CLLocation) -> CLLocationDistance {

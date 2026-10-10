@@ -175,6 +175,7 @@ struct ShareCardMakerView: View {
     @State private var selectedPhotoIDs: [UUID]
     @State private var options = ShareCardOptions()
     @State private var presentedSheet: ShareCardSheet?
+    @State private var showProPaywall = false
 
     init(record: RestaurantRecord, place: Place, photos: [RecordPhoto], tags: [Tag]) {
         self.record = record
@@ -246,10 +247,9 @@ struct ShareCardMakerView: View {
         .themeScreenBackground()
         .navigationTitle("投稿画像を作る")
         .navigationBarTitleDisplayMode(.inline)
+        .proPaywall(isPresented: $showProPaywall)
         .sheet(item: $presentedSheet) { sheet in
             switch sheet {
-            case .paywall:
-                ShareCardPaywallSheet()
             case .share(_, let image):
                 ShareSheet(items: [image])
             }
@@ -504,7 +504,7 @@ struct ShareCardMakerView: View {
 
     private func select(_ candidate: ShareCardTemplate) {
         guard !candidate.requiresPro || proAccess.isProUnlocked else {
-            presentedSheet = .paywall
+            showProPaywall = true
             return
         }
         withAnimation(.snappy) { template = candidate }
@@ -512,7 +512,7 @@ struct ShareCardMakerView: View {
 
     private func select(_ candidate: ShareCardFormat) {
         guard !candidate.requiresPro || proAccess.isProUnlocked else {
-            presentedSheet = .paywall
+            showProPaywall = true
             return
         }
         withAnimation(.snappy) { format = candidate }
@@ -520,7 +520,7 @@ struct ShareCardMakerView: View {
 
     private func select(_ candidate: ShareCardPalette) {
         guard !candidate.requiresPro || proAccess.isProUnlocked else {
-            presentedSheet = .paywall
+            showProPaywall = true
             return
         }
         withAnimation(.snappy) { palette = candidate }
@@ -537,7 +537,7 @@ struct ShareCardMakerView: View {
     @MainActor
     private func makeAndShareImage() {
         guard proAccess.isProUnlocked || (!template.requiresPro && !format.requiresPro && !palette.requiresPro) else {
-            presentedSheet = .paywall
+            showProPaywall = true
             return
         }
         let renderer = ImageRenderer(content:
@@ -560,28 +560,11 @@ struct ShareCardMakerView: View {
     }
 }
 
-private struct ShareCardPaywallSheet: View {
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ProPaywallView()
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("閉じる") { dismiss() }
-                    }
-                }
-        }
-    }
-}
-
 private enum ShareCardSheet: Identifiable {
-    case paywall
     case share(UUID, UIImage)
 
     var id: String {
         switch self {
-        case .paywall: "paywall"
         case .share(let id, _): id.uuidString
         }
     }
