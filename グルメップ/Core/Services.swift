@@ -62,24 +62,34 @@ final class LocalPhotoStore: PhotoStore {
     private func relative(_ url: URL) -> String { "RecordPhotos/" + url.pathComponents.suffix(2).joined(separator: "/") }
 }
 
-protocol MapSearchClient { func search(query: String, region: MKCoordinateRegion?) async throws -> [PlaceCandidate] }
+enum PlaceSearchScope: Equatable {
+    case food
+    case allPlaces
+}
+
+protocol MapSearchClient { func search(query: String, region: MKCoordinateRegion?, scope: PlaceSearchScope) async throws -> [PlaceCandidate] }
 struct PlaceCandidate: Identifiable, Hashable { let id: String; let name: String; let address: String; let latitude: Double; let longitude: Double; let category: String }
 final class AppleMapSearchClient: MapSearchClient {
-    func search(query: String, region: MKCoordinateRegion? = nil) async throws -> [PlaceCandidate] {
-        let primary = try await runSearch(query: query, region: region)
+    func search(query: String, region: MKCoordinateRegion? = nil, scope: PlaceSearchScope = .food) async throws -> [PlaceCandidate] {
+        let primary = try await runSearch(query: query, region: region, scope: scope)
         let supplemental = primary.count < 8
-            ? (try? await runSearch(query: "\(query) 飲食店", region: region)) ?? []
+            ? (try? await runSearch(query: "\(query) 飲食店", region: region, scope: scope)) ?? []
             : []
 
         var seen = Set<String>()
         return (primary + supplemental).filter { seen.insert($0.id).inserted }.prefix(12).map { $0 }
     }
 
-    private func runSearch(query: String, region: MKCoordinateRegion?) async throws -> [PlaceCandidate] {
+    private func runSearch(query: String, region: MKCoordinateRegion?, scope: PlaceSearchScope) async throws -> [PlaceCandidate] {
         let request = MKLocalSearch.Request()
         request.naturalLanguageQuery = query
         request.region = region ?? MKCoordinateRegion(.world)
         request.resultTypes = .pointOfInterest
+        if scope == .food {
+            var foodCategories: [MKPointOfInterestCategory] = [.restaurant, .cafe, .bakery, .brewery, .winery]
+            if #available(iOS 18.0, *) { foodCategories.append(.distillery) }
+            request.pointOfInterestFilter = MKPointOfInterestFilter(including: foodCategories)
+        }
         let response = try await MKLocalSearch(request: request).start()
         return response.mapItems.map { item in
             let coordinate = coordinate(for: item)

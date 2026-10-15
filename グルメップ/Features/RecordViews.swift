@@ -90,26 +90,52 @@ struct RelatedLinksEditor: View {
 }
 
 struct RecordStartView: View {
-    @Environment(\.modelContext) private var context; @State private var showManual = false; @State private var query = ""; @State private var results: [PlaceCandidate] = []; @State private var isLoading = false; @State private var locationService = DeviceLocationService(); @State private var searchMessage: String?
+    @Environment(\.modelContext) private var context; @State private var showManual = false; @State private var query = ""; @State private var results: [PlaceCandidate] = []; @State private var isLoading = false; @State private var locationService = DeviceLocationService(); @State private var searchMessage: String?; @State private var searchScope: PlaceSearchScope = .food
     private let search = AppleMapSearchClient()
-    var body: some View { List { Section("お店を探す") { HStack { TextField("店名・住所から検索", text: $query).onSubmit { Task { await runSearch() } }; if isLoading { ProgressView() } }; Button { Task { await runSearch() } } label: { Label("検索する", systemImage: "magnifyingglass") }; Button { locationService.request() } label: { Label("現在地を使う", systemImage: "location") }.accessibilityIdentifier("useCurrentLocation"); if locationService.currentLocation != nil { Label("現在地付近を検索します", systemImage: "location.fill").font(.caption).foregroundStyle(.secondary) }; Button { showManual = true } label: { Label("店舗情報を手入力", systemImage: "square.and.pencil") }.accessibilityIdentifier("enterPlaceManually") }
+    var body: some View { List { Section("お店を探す") { HStack { TextField("店名・住所から検索", text: $query).onSubmit { Task { await runSearch(scope: .food) } }; if isLoading { ProgressView() } }; Button { Task { await runSearch(scope: .food) } } label: { Label("検索する", systemImage: "magnifyingglass") }; Button { locationService.request() } label: { Label("現在地を使う", systemImage: "location") }.accessibilityIdentifier("useCurrentLocation"); if locationService.currentLocation != nil { Label("現在地付近を検索します", systemImage: "location.fill").font(.caption).foregroundStyle(.secondary) }; Button { showManual = true } label: { Label("店舗情報を手入力", systemImage: "square.and.pencil") }.accessibilityIdentifier("enterPlaceManually") }
             if let searchMessage { ContentUnavailableView(searchMessage, systemImage: "magnifyingglass", description: Text("店名やエリアを変えて、もう一度お試しください。")) }
-            if !results.isEmpty { Section("検索結果（\(results.count)件）") { ForEach(results) { candidate in NavigationLink { RecordEditor(candidate: candidate) } label: { VStack(alignment: .leading, spacing: 3) { Text(candidate.name); Text(candidate.address).font(.caption).foregroundStyle(.secondary).lineLimit(2) } } } } }
+            if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                Section {
+                    if searchScope == .food {
+                        Button {
+                            Task { await runSearch(scope: .allPlaces) }
+                        } label: {
+                            Label("検索範囲を広げる", systemImage: "globe.americas")
+                        }
+                        .disabled(isLoading)
+                        .accessibilityIdentifier("togglePlaceSearchScope")
+                    }
+
+                    if !results.isEmpty {
+                        ForEach(results) { candidate in
+                            NavigationLink { RecordEditor(candidate: candidate) } label: {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(candidate.name)
+                                    Text(candidate.address).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Text(searchScope == .food ? "飲食店の検索結果（\(results.count)件）" : "すべての施設（\(results.count)件）")
+                }
+            }
         }
         .navigationTitle("記録する")
         .navigationBarTitleDisplayMode(.inline)
         .themeScreenBackground()
         .sheet(isPresented: $showManual) { NavigationStack { ManualPlaceView() } }
     }
-    private func runSearch() async {
+    private func runSearch(scope: PlaceSearchScope) async {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedQuery.isEmpty else { return }
+        searchScope = scope
         isLoading = true
         searchMessage = nil
         defer { isLoading = false }
         let region = locationService.currentLocation.map { MKCoordinateRegion(center: $0.coordinate, span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)) }
         do {
-            results = try await search.search(query: trimmedQuery, region: region)
+            results = try await search.search(query: trimmedQuery, region: region, scope: scope)
             if results.isEmpty { searchMessage = "候補が見つかりませんでした" }
         } catch {
             results = []
