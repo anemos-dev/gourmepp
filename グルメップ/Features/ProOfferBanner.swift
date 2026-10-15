@@ -88,19 +88,27 @@ private struct ProOfferOverlay: View {
     var body: some View {
         Color.clear
             .overlay(alignment: .top) {
-                if visible {
-                    ProOfferBanner(open: openOffer, close: dismissBanner)
-                        .background(ProOfferHitRegion(register: registerHitView))
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
-                        .gesture(DragGesture().onEnded { value in
-                            if value.translation.height < -20 { dismissBanner() }
-                        })
-                        .transition(reduceMotion ? .opacity : .move(edge: .top))
-                }
+                ProOfferBanner(open: openOffer, close: dismissBanner)
+                    .background(ProOfferHitRegion(register: registerHitView))
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                    .offset(y: reduceMotion || visible ? 0 : -240)
+                    .opacity(visible ? 1 : 0)
+                    .animation(
+                        reduceMotion
+                            ? .easeOut(duration: 0.2)
+                            : visible
+                                ? .spring(response: 0.52, dampingFraction: 0.82)
+                                : .easeIn(duration: 0.25),
+                        value: visible
+                    )
+                    .gesture(DragGesture().onEnded { value in
+                        if value.translation.height < -20 { dismissBanner() }
+                    })
             }
             .task {
-                withAnimation(.easeOut(duration: 0.35)) { visible = true }
+                await Task.yield()
+                visible = true
                 do {
                     try await Task.sleep(for: .seconds(6))
                     if !showsPaywall { dismissBanner() }
@@ -163,12 +171,14 @@ private struct ProOfferBanner: View {
                         HStack(alignment: .center, spacing: 8) {
                             Text("ご用意しました。")
                                 .font(.system(size: 15, weight: .bold))
+                                .fixedSize(horizontal: true, vertical: false)
                             Spacer(minLength: 0)
                             actionLabel
                         }
                         VStack(alignment: .leading, spacing: 5) {
                             Text("ご用意しました。")
                                 .font(.system(size: 15, weight: .bold))
+                                .fixedSize(horizontal: true, vertical: false)
                             actionLabel
                         }
                     }
