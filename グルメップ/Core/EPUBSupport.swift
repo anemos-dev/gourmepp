@@ -41,6 +41,21 @@ nonisolated struct EPUBImportResult {
     let skippedDuplicateCount: Int
 }
 
+nonisolated struct EPUBExportSnapshot: Sendable {
+    fileprivate let visits: [EPUBExportVisit]
+}
+
+nonisolated fileprivate struct EPUBExportVisit: Sendable {
+    let id: UUID
+    let placeName: String
+    let address: String
+    let ratingHalfSteps: Int
+    let visitDate: Date?
+    let memo: String
+    let tagNames: [String]
+    let photoPaths: [String]
+}
+
 nonisolated struct EPUBService {
     @MainActor
     func encode(
@@ -49,27 +64,38 @@ nonisolated struct EPUBService {
         tags: [Tag],
         photos: [RecordPhoto]
     ) throws -> Data {
+        try encode(makeExportSnapshot(
+            records: records,
+            places: places,
+            tags: tags,
+            photos: photos
+        ))
+    }
+
+    @MainActor
+    func makeExportSnapshot(
+        records: [RestaurantRecord],
+        places: [Place],
+        tags: [Tag],
+        photos: [RecordPhoto]
+    ) throws -> EPUBExportSnapshot {
         let placeByID = Dictionary(uniqueKeysWithValues: places.map { ($0.id, $0) })
         let tagByID = Dictionary(uniqueKeysWithValues: tags.map { ($0.id, $0) })
         let photosByRecordID = Dictionary(grouping: photos, by: \.recordID)
-        let photoStore = LocalPhotoStore()
 
-        let exports = try records
+        let visits = try records
             .filter { !$0.isTrashed && $0.status == .visited }
             .sorted {
                 let leftDate = $0.visitDate ?? $0.createdAt
                 let rightDate = $1.visitDate ?? $1.createdAt
                 return leftDate == rightDate ? $0.createdAt > $1.createdAt : leftDate > rightDate
             }
-            .map { record -> ExportVisit in
+            .map { record -> EPUBExportVisit in
                 guard let place = placeByID[record.placeID] else { throw EPUBError.invalidFile }
-                let imageData = try (photosByRecordID[record.id] ?? [])
+                let photoPaths = (photosByRecordID[record.id] ?? [])
                     .sorted { $0.order < $1.order }
-                    .map { photo in
-                        guard let data = photoStore.data(at: photo.imagePath) else { throw EPUBError.missingPhoto }
-                        return data
-                    }
-                return ExportVisit(
+                    .map(\.imagePath)
+                return EPUBExportVisit(
                     id: record.id,
                     placeName: place.name,
                     address: place.address,
@@ -77,10 +103,34 @@ nonisolated struct EPUBService {
                     visitDate: record.visitDate,
                     memo: record.memo,
                     tagNames: record.tagIDs.compactMap { tagByID[$0]?.name },
-                    photos: imageData
+                    photoPaths: photoPaths
                 )
             }
-        guard !exports.isEmpty else { throw EPUBError.noRecords }
+        guard !visits.isEmpty else { throw EPUBError.noRecords }
+        return EPUBExportSnapshot(visits: visits)
+    }
+
+    func encode(_ snapshot: EPUBExportSnapshot) throws -> Data {
+        let applicationSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let exports = try snapshot.visits.map { visit in
+            let imageData = try visit.photoPaths.map { path in
+                do {
+                    return try Data(contentsOf: applicationSupport.appendingPathComponent(path))
+                } catch {
+                    throw EPUBError.missingPhoto
+                }
+            }
+            return ExportVisit(
+                id: visit.id,
+                placeName: visit.placeName,
+                address: visit.address,
+                ratingHalfSteps: visit.ratingHalfSteps,
+                visitDate: visit.visitDate,
+                memo: visit.memo,
+                tagNames: visit.tagNames,
+                photos: imageData
+            )
+        }
         return try makeArchive(for: exports)
     }
 
