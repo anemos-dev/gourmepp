@@ -91,6 +91,19 @@ struct DeveloperMenuView: View {
             Button(action: addOrRefreshSampleData) {
                 Label("リリース用サンプルを生成・更新", systemImage: "wand.and.stars")
             }
+            Button {
+                do {
+                    try DeveloperSampleData.addFifty(to: context)
+                    errors.show("都内のサンプル訪問記録50件を追加・更新しました。")
+                } catch {
+                    errors.show(error, title: "サンプルを追加できませんでした")
+                }
+            } label: {
+                Label("サンプルを50件追加", systemImage: "square.stack.3d.up.fill")
+            }
+            Text("都内の複数エリアに訪問記録を分散し、各店舗に専用の料理写真を登録します。再実行しても同じ50件を更新します。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Button(action: normalizePrivacy) {
                 Label("公開範囲を端末内限定に正規化", systemImage: "lock.shield")
             }
