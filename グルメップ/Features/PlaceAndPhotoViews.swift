@@ -100,7 +100,7 @@ struct PlaceEditView: View {
         isLocating = true
         defer { isLocating = false }
         do {
-            let candidates = try await AppleMapSearchClient().search(query: "\(name) \(address)", region: nil)
+            let candidates = try await AppleMapSearchClient().search(query: "\(name) \(address)", region: nil, scope: .allPlaces)
             guard let candidate = candidates.first else {
                 errors.show("候補が見つかりませんでした。住所を詳しく入力してください。", title: "位置を設定できませんでした")
                 return
