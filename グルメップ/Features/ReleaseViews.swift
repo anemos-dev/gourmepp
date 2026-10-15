@@ -150,6 +150,7 @@ struct ReleaseSettingsView: View {
     @State private var pendingEPUBImport: EPUBImport?
     @State private var showEPUBImportConfirmation = false
     @State private var isProcessingEPUB = false
+    @State private var isExportingEPUB = false
     @State private var pendingBackup: AppBackup?
     @State private var showRestoreConfirmation = false
     @State private var showDeleteAllConfirmation = false
@@ -270,16 +271,29 @@ struct ReleaseSettingsView: View {
                 } label: {
                     Label("バックアップから復元", systemImage: "externaldrive.badge.checkmark")
                 }
-                Button(action: prepareEPUB) {
-                    Label("行った記録をEPUBで書き出す", systemImage: "books.vertical")
+                Button {
+                    Task { await prepareEPUB() }
+                } label: {
+                    if isExportingEPUB {
+                        HStack {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("EPUBを作成中…")
+                        }
+                    } else {
+                        Label("行った記録をEPUBで書き出す", systemImage: "books.vertical")
+                    }
                 }
-                .disabled(isProcessingEPUB || !records.contains { !$0.isTrashed && $0.status == .visited })
+                .disabled(
+                    isProcessingEPUB || isExportingEPUB ||
+                    !records.contains { !$0.isTrashed && $0.status == .visited }
+                )
                 Button {
                     showEPUBImporter = true
                 } label: {
                     Label("EPUBから行った記録を取り込む", systemImage: "square.and.arrow.down")
                 }
-                .disabled(isProcessingEPUB)
+                .disabled(isProcessingEPUB || isExportingEPUB)
                 if isProcessingEPUB {
                     HStack {
                         ProgressView()
@@ -509,17 +523,28 @@ struct ReleaseSettingsView: View {
         }
     }
 
-    private func prepareEPUB() {
-        isProcessingEPUB = true
-        defer { isProcessingEPUB = false }
+    @MainActor
+    private func prepareEPUB() async {
+        guard !isExportingEPUB else { return }
+        isExportingEPUB = true
+        defer { isExportingEPUB = false }
+        await Task.yield()
+
         do {
-            epubDocument = GourmeppEPUBDocument(data: try EPUBService().encode(
+            let snapshot = try EPUBService().makeExportSnapshot(
                 records: records,
                 places: places,
                 tags: tags,
                 photos: photos
-            ))
+            )
+            let data = try await Task.detached(priority: .userInitiated) {
+                try EPUBService().encode(snapshot)
+            }.value
+            guard !Task.isCancelled else { return }
+            epubDocument = GourmeppEPUBDocument(data: data)
             showEPUBExporter = true
+        } catch is CancellationError {
+            return
         } catch {
             errors.show(error, title: "EPUBを作成できませんでした")
         }
